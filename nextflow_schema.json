@@ -236,6 +236,12 @@
                     "description": "Container image with the Rust ports (sage, redux and esvee commands).",
                     "fa_icon": "fab fa-docker"
                 },
+                "rust_ports_bin": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "Folder on the host with the Rust ports and their sage, redux and esvee commands. When set, these steps run on the host without a container, while the other steps keep theirs.",
+                    "fa_icon": "fas fa-folder-open"
+                },
                 "rust_java_compat": {
                     "type": "boolean",
                     "description": "Make the Rust ports reproduce the Java tools' output exactly, including the faults they correct by default.",

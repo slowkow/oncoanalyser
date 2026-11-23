@@ -30,6 +30,7 @@ nextflow run slowkow/oncoanalyser -r rust-ports \
 | Parameter | Default | Meaning |
 |---|---|---|
 | `--rust_ports_container` | `hmftools-rust:dev` | image with the ports (built locally, see below) |
+| `--rust_ports_bin` | not set | folder with the ports on the host; these steps then run without a container (see below) |
 | `--rust_java_compat` | `false` | reproduce the Java tools' output exactly, including the faults the ports correct by default |
 
 By default the ports correct the faults found in the Java code (each is listed with an id in the
@@ -39,6 +40,28 @@ port's `REPORT.md`). `--rust_java_compat true` sets `SAGE_JAVA_COMPAT`, `REDUX_J
 The profiles also lower the memory requested for these steps (SAGE and REDUX 8 GB, ESVEE 24 GB, each
 doubled on retry), since the ports need a few GB where the Java tools are given 36 to 72 GB. More
 samples then fit on one machine at once.
+
+## Without a container
+
+The ports are single programs with no dependencies beyond the operating system, so they do not need
+a container. With `--rust_ports_bin <folder>`, SAGE, REDUX and ESVEE run on the host from that folder,
+while every other step keeps its container (or conda environment). This is the better choice on Apple
+Silicon, where Docker runs the pipeline's x86-64 images under emulation in a virtual machine: the ports
+then run as native arm64 programs. Build the folder from the hmftools fork:
+
+```bash
+git clone -b rust-ports https://github.com/slowkow/hmftools.git
+hmftools/rust-docker/install.sh ~/rust-ports
+nextflow run slowkow/oncoanalyser -r rust-ports -profile docker,rust_ports \
+    --rust_ports_bin ~/rust-ports ...
+```
+
+`samtools` and `sambamba` must also be on the host's `PATH`: oncoanalyser passes them to REDUX and
+ESVEE as `-bamtool`, and the ports check that the path exists (as the Java tools do), though they sort
+and index BAMs themselves.
+
+Executors that run every task in a container (Google Cloud Batch, AWS Batch, Kubernetes) need the
+image instead.
 
 ## The container
 
@@ -66,6 +89,10 @@ where those versions differ, REDUX in particular.
 
 ## Known gaps
 
+- oncoanalyser runs ESVEE's four steps in one call; esvee-rs runs them one at a time, and the
+  one-call mode is still being added. Until then the ESVEE step fails with `rust_ports` and
+  `rust_esvee` on real data.
+
 - redux-rs does not draw the base-quality recalibration plot (`-bqr_write_plot`); no later step
   reads it.
 - The image has been built for the build machine's architecture only.
@@ -82,3 +109,17 @@ nextflow run <path to this repo> -profile test_stub,rust_ports -stub \
 ```
 
 It runs bwa-mem3 for the three samples, no fastp, and every later step.
+
+To check that `--rust_ports_bin` takes these steps out of their containers, run REDUX, SAGE and ESVEE
+alone from BAM input under the `docker` profile; with the Docker daemon stopped they still complete,
+and without `--rust_ports_bin` they fail to reach Docker:
+
+```bash
+mkdir -p temp
+for s in tumor normal; do : > temp/subject_a.$s.bam; : > temp/subject_a.$s.bam.bai; done
+nextflow run <path to this repo> -profile test_stub,docker,rust_ports -stub \
+    --input <path to this repo>/tests/rust_ports/bam.stub.csv --outdir out \
+    --processes_manual redux,sage,esvee --rust_ports_bin ~/rust-ports
+```
+
+A stub run checks the wiring only; it does not run the tools' commands.
