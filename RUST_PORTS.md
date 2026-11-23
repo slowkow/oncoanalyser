@@ -100,17 +100,27 @@ image instead.
 
 The image holds `sage-rs`, `redux-rs` and `esvee-rs`, wrapper commands `sage`, `redux` and `esvee`
 that accept the Java tools' command lines (JVM options are dropped, Java main classes become
-subcommands), and samtools and sambamba, which REDUX and ESVEE are given as `-bamtool`. Build it from
-the hmftools fork:
+subcommands), samtools and sambamba (passed to REDUX and ESVEE as `-bamtool`), and `ps`, which
+Nextflow needs to record each task's memory and CPU use. It is built from the hmftools fork, for
+linux/amd64 (the machines of Google Batch and AWS Batch). On Google Cloud, Cloud Build builds it and
+pushes it to Artifact Registry, with no Docker needed locally:
 
 ```bash
 git clone -b rust-ports https://github.com/slowkow/hmftools.git
 cd hmftools
-docker build -f rust-docker/Dockerfile -t hmftools-rust:dev .
+rust-docker/cloud-build.sh <region>-docker.pkg.dev/<project>/<repository>/hmftools-rust
 ```
 
-The image is not published to a registry yet; build it on the machine that runs the pipeline, or
-push it to your own registry and pass `--rust_ports_container`.
+The image is tagged with the hmftools commit id, and the build runs the ports' unit tests on Linux.
+For AWS Batch, build the same Dockerfile (`rust-docker/Dockerfile`) and push it to ECR. Then point
+the pipeline at it, for example in a private config file given with `-c`:
+
+```groovy
+params.rust_ports_container = '<region>-docker.pkg.dev/<project>/<repository>/hmftools-rust:<commit id>'
+```
+
+The Batch machines need permission to pull from that registry (on Google Cloud, the Artifact Registry
+Reader role for the service account the jobs run as).
 
 ## Versions
 
@@ -127,10 +137,10 @@ where those versions differ, REDUX in particular.
 - On macOS (`--rust_ports_bin`), the modules read tool versions with GNU `sed` syntax, which the
   system `sed` rejects, so the versions in `versions.yml` are empty unless GNU sed is first on `PATH`
   (for example Homebrew's `gnu-sed`). The steps themselves are not affected.
-
 - redux-rs does not draw the base-quality recalibration plot (`-bqr_write_plot`); no later step
   reads it.
-- The image has been built for the build machine's architecture only.
+- Not yet run end to end on Google Batch or AWS Batch, so the whole-genome memory of each step inside
+  the pipeline (and of the one-call ESVEE mode) is not yet measured.
 
 ## Checking the wiring
 
