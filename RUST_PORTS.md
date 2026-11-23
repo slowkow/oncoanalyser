@@ -41,6 +41,39 @@ The profiles also lower the memory requested for these steps (SAGE and REDUX 8 G
 doubled on retry), since the ports need a few GB where the Java tools are given 36 to 72 GB. More
 samples then fit on one machine at once.
 
+## Resources
+
+What each step asks the executor for, and what the ports were measured to use on a whole-genome
+Illumina tumor/normal pair (from the ports' REPORT.md files; Java's peak depends on the heap it is
+given, which oncoanalyser sets to 95% of the task's memory):
+
+| Step | Requested (CPUs, memory) | Rust, measured | Java, measured |
+|---|---|---|---|
+| SAGE somatic | 12 CPUs, 8 GB | 316 s, 1.7 GB at 16 threads | 3,407 s, 26.9 GB at 16 threads; 70 GB in an oncoanalyser run |
+| REDUX, per sample | 12 CPUs, 8 GB | 26 min, 1.6 GB at 16 threads (Linux) | 50 min, 35.7 GB at 16 threads; 51 GB in an oncoanalyser run |
+| ESVEE | 12 CPUs, 24 GB | 14 min at 8 threads; peak 7.2 GB (assembly), steps run one at a time | 121 GB in an oncoanalyser run |
+
+CPUs and memory are doubled on each retry (`task.attempt`). The CPU requests are upstream's
+(`process_high`); the memory requests are this fork's (upstream asks 72 GB). The one-call ESVEE mode
+has not been measured on a whole genome yet: assembly keeps its memory until the run ends, so the peak
+is expected near assembly's.
+
+On Google Batch every task gets its own VM, chosen from the CPU and memory requested, so the requests
+set the machine type and the cost. On AWS Batch tasks share instances, and the requests decide how
+many fit on one. Either way, keep the requests close to measured use.
+
+The trace of each run (`pipeline_info/execution_trace_*.txt`) records, per task, what was requested
+(`cpus`, `memory`, `attempt`) and what was used (`peak_rss`, `realtime`, `%cpu`). Summarise one or more
+runs per step with:
+
+```bash
+tools/trace_summary.py output/pipeline_info/execution_trace_*.txt
+```
+
+It prints, per process, the requests, the largest and median peak memory, the largest share of its
+request a task used, run times and CPU hours, then lists tasks that came near their memory request
+and tasks that failed (exit 137 is usually out of memory).
+
 ## Without a container
 
 The ports are single programs with no dependencies beyond the operating system, so they do not need
