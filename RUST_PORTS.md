@@ -33,6 +33,12 @@ nextflow run slowkow/oncoanalyser -r rust-ports \
 | `--rust_ports_bin` | not set | folder with the ports on the host; these steps then run without a container (see below) |
 | `--rust_java_compat` | `false` | reproduce the Java tools' output exactly, including the faults the ports correct by default |
 
+Give `--rust_ports_bin` and `--rust_java_compat` on the command line or in a `-params-file`: they are
+read while the configuration is loaded, so a value set in a `-c` config file is not seen.
+`--rust_ports_container` can be set in either place (also in a `-c` file). It is read as each task
+starts, and Nextflow then warns once at start-up, before the pipeline's parameters are loaded:
+`Access to undefined parameter rust_ports_container`. That warning is harmless.
+
 By default the ports correct the faults found in the Java code (each is listed with an id in the
 port's `REPORT.md`). `--rust_java_compat true` sets `SAGE_JAVA_COMPAT`, `REDUX_JAVA_COMPAT` and
 `ESVEE_JAVA_COMPAT` in the task environment, which makes each port behave as Java does.
