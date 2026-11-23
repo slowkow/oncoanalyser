@@ -224,6 +224,25 @@
                 }
             }
         },
+        "rust_ports_options": {
+            "title": "Rust ports of hmftools",
+            "type": "object",
+            "fa_icon": "fas fa-bolt",
+            "description": "Options for the profiles rust_ports, rust_sage, rust_redux and rust_esvee, which run the Rust ports of SAGE, REDUX and ESVEE in place of the Java tools.",
+            "properties": {
+                "rust_ports_container": {
+                    "type": "string",
+                    "default": "hmftools-rust:dev",
+                    "description": "Container image with the Rust ports (sage, redux and esvee commands).",
+                    "fa_icon": "fab fa-docker"
+                },
+                "rust_java_compat": {
+                    "type": "boolean",
+                    "description": "Make the Rust ports reproduce the Java tools' output exactly, including the faults they correct by default.",
+                    "fa_icon": "fas fa-equals"
+                }
+            }
+        },
         "reference_data_options": {
             "title": "Reference data options",
             "type": "object",
@@ -508,6 +527,9 @@
         },
         {
             "$ref": "#/$defs/other_options"
+        },
+        {
+            "$ref": "#/$defs/rust_ports_options"
         },
         {
             "$ref": "#/$defs/generic_options"
