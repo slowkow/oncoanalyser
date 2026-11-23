@@ -131,7 +131,7 @@ Reader role for the service account the jobs run as).
 ## Versions
 
 The Java images in this branch (`conf/hmf_containers.config`) are Hartwig's pre-release builds:
-SAGE 5.1-beta.3 and ESVEE 2.1-beta.3; REDUX is the bioconda 2.0.7. The ports reproduce SAGE 5.1 and
+SAGE 5.1-beta.3 and ESVEE 2.1-beta.4; REDUX is the bioconda 2.0.7. The ports reproduce SAGE 5.1 and
 REDUX 2.1 as of hmftools commit a224a2cd8e, and ESVEE 2.1 as of commit ca04e6c39d. So a run with the
 Java tools and a run with `rust_ports --rust_java_compat true` are not expected to be identical
 where those versions differ, REDUX in particular.
