@@ -145,8 +145,48 @@ where those versions differ, REDUX in particular.
   (for example Homebrew's `gnu-sed`). The steps themselves are not affected.
 - redux-rs does not draw the base-quality recalibration plot (`-bqr_write_plot`); no later step
   reads it.
-- Not yet run end to end on Google Batch or AWS Batch, so the whole-genome memory of each step inside
-  the pipeline (and of the one-call ESVEE mode) is not yet measured.
+- Run end to end on Google Batch only on a 2M-read-pair test (below); not yet on a whole genome or on
+  AWS Batch, so the whole-genome memory of each step inside the pipeline (and of the one-call ESVEE
+  mode) is not yet measured.
+
+## Google Batch
+
+A 2M-read-pair tumor/normal test from FASTQ (DNA only, `-profile rust_ports`, image built with
+`rust-docker/cloud-build.sh`) completed on Google Batch on 2026-11-23: bwa-mem3, the three Rust ports
+and every later step. ORANGE did not run: this branch runs it only when PURPLE has drawn its Circos
+plot, which PURPLE does not do when it finds no tumor, as at this depth. What the first attempts ran
+into, all fixed or worked around:
+
+- **Command files among the outputs.** The modules of this branch list `.command.*` among their
+  outputs. On Google Batch each task runs in a local scratch folder in which `.command.run` and
+  `.command.sh` are links to the copies in the work folder, so copying the outputs back moves each
+  link onto the file it points to: GNU `mv` and `cp` refuse ("are the same file", the task fails), and
+  busybox `mv` replaces the file with a link to itself. Configs that shadow `mv` with `cp -fR` (a
+  workaround for older oncoanalyser releases, which moved a `dir/` output before `dir/file` outputs;
+  no module here has such a pair) fail on every task whose image has GNU coreutils. A `beforeScript`
+  that skips such links works:
+
+  ```groovy
+  process.beforeScript = 'mv() { local dst="${@: -1}" src; for src in "${@:1:$#-1}"; do case "$src" in -*) continue;; esac; if [ -L "$src" ] && [ "$(readlink -f "$src")" = "$(readlink -f "$dst")/$(basename "$src")" ]; then continue; fi; command mv -f "$src" "$dst" || return; done; }; export -f mv'
+  ```
+- **Resource files.** This branch names 15 files that no published resource bundle has yet (newest:
+  `hmf_pipeline_resources.38_v3.0.0--8`), and checks that each named file exists. For a DNA-only
+  Illumina run, set in `params.hmf_data_paths['38']`: `unmap_regions_dna` to
+  `common/unmap_regions.38.tsv`, and `[]` for `saga_germline_variants` (and its `_fai`, `_dict`,
+  `_img`), `msi_model_error_rates_illumina` (REDUX then skips its MSI prediction; PURPLE still reports
+  MSI), the SBX and Ultima MSI files, `sage_pon_ultima`, and the RNA files (`isofox_alt_sj_distribution`,
+  `isofox_fusion_cohort`, `isofox_gene_distribution`, `unmap_regions_rna`, `contigs_mapping_rna`).
+- **Fixed in the ports** (hmftools `rust-ports`): the REDUX index pointed some reads at the end of a
+  compressed block, which the Java tools' htsjdk refuses (BamTools failed); SAGE looked for REDUX's
+  BQR file at `/` when the BAM was given as a bare file name, as oncoanalyser does; ESVEE read the
+  mapped genome image page by page through the bucket mount (28 minutes at 1% CPU, now 55 seconds).
+- **Fixed here:** a missing space in the bwa-mem3 modules' `versions.yml`; the image parameter now
+  also counts when set in a `-c` file; `purple:4.5-beta.4` was never published (merged upstream's move
+  to beta.5).
+
+Peak memory on the test, for scale only (2M read pairs is about 0.1x): bwa-mem3 17.7 GB (of the
+96 GB requested), REDUX 1.3 GB, SAGE 0.4 GB, ESVEE 1.9 GB; of the Java steps, PAVE germline 9.6 GB,
+LILAC 9.6 GB and AMBER 6.9 GB used the most.
 
 ## Checking the wiring
 
