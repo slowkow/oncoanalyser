@@ -89,9 +89,11 @@ where those versions differ, REDUX in particular.
 
 ## Known gaps
 
-- oncoanalyser runs ESVEE's four steps in one call; esvee-rs runs them one at a time, and the
-  one-call mode is still being added. Until then the ESVEE step fails with `rust_ports` and
-  `rust_esvee` on real data.
+- The modules also record the Java version in `versions.yml` (`java --version`). The image has no
+  Java, so that entry is empty; the step is not affected.
+- On macOS (`--rust_ports_bin`), the modules read tool versions with GNU `sed` syntax, which the
+  system `sed` rejects, so the versions in `versions.yml` are empty unless GNU sed is first on `PATH`
+  (for example Homebrew's `gnu-sed`). The steps themselves are not affected.
 
 - redux-rs does not draw the base-quality recalibration plot (`-bqr_write_plot`); no later step
   reads it.
