@@ -235,6 +235,34 @@ average cores in use; machine sizes set in a private config):
   threads. Runs with an earlier image are affected only when the read names of tumor and normal (or of
   the lanes of one sample) come from runs with prefixes of different lengths.
 
+The same pair was then run with the Java tools (`-profile` without `rust_ports`), on the same bwa-mem3
+alignments taken from the cache, without the gcsfuse cache in either run:
+
+| Step | Java: time, peak memory | Rust: time, peak memory |
+|---|---|---|
+| REDUX, per sample | 1.2-1.4 h, 30 GB | 39.5 min, 2.4 GB |
+| SAGE somatic | 3.7 h, 61 GB | 16.5 min, 1.9 GB (12.5 min with the gcsfuse cache) |
+| ESVEE | 1.2 h, 108 GB (above its 96 GB request; the machine had 128 GB) | 63.5 min, 12.9 GB (15.7 min with the cache) |
+| Every step after alignment, cost | about $11.30 | about $4.60 |
+
+Results agree: purity, ploidy and contamination are the same; REDUX marks the same duplicates to
+within 16 reads of 2.5 billion and BamTools' coverage metrics are identical; of the PASS somatic
+small variants 3,755 are shared (3,813 Java, 3,824 Rust); ESVEE has 283 and 298 PASS somatic breakends.
+The two runs are not expected to be identical: the Rust run corrects the faults found in the Java
+code (the default), and this branch's Java images are pre-release versions older than the code the
+ports follow (see Versions). Each was checked against Java of its own version on this pair:
+
+- **ESVEE.** The Java ESVEE task's command rerun in the Rust image with `ESVEE_JAVA_COMPAT=1`, on the
+  same inputs: 283 PASS somatic breakends against Java's 283 (281 at the same position, all within 10
+  bases) and 27,504 germline against 27,505; the rest differ in ids and in a few support counts, as two
+  multi-threaded Java runs do. So the 298 of the default run come from the corrections.
+- **SAGE.** Java SAGE built from the commit the port follows, and the port with `SAGE_JAVA_COMPAT=1`,
+  on three chromosomes with the task's options: the same 45,774 records, differing only in the local
+  phase set ids and their read counts, which Java numbers in thread order. Java took 23 minutes, the
+  port 1.6. The SAGE 5.1-beta.3 image differs from that commit by about 30,000 records genome-wide;
+  among them, it writes no record for an in-frame deletion in a driver gene that SAGE 5.1, SAGE 4.2 and
+  the port all call PASS.
+
 ## Checking the wiring
 
 A stub run (no real tools; checks that every step is connected) from FASTQ input:
