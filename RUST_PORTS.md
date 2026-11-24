@@ -70,9 +70,9 @@ given, which oncoanalyser sets to 95% of the task's memory):
 | ESVEE | 12 CPUs, 24 GB | 14 min at 8 threads; peak 7.2 GB (assembly), steps run one at a time | 121 GB in an oncoanalyser run |
 
 CPUs and memory are doubled on each retry (`task.attempt`). The CPU requests are upstream's
-(`process_high`); the memory requests are this fork's (upstream asks 72 GB). The one-call ESVEE mode
-has not been measured on a whole genome yet: assembly keeps its memory until the run ends, so the peak
-is expected near assembly's.
+(`process_high`); the memory requests are this fork's (upstream asks 72 GB). The one-call ESVEE mode,
+which oncoanalyser runs, peaked at 12.9 GB on a 35x whole genome on Google Batch (section "Whole
+genome" below), within the 24 GB requested.
 
 On Google Batch every task gets its own VM, chosen from the CPU and memory requested, so the requests
 set the machine type and the cost. On AWS Batch tasks share instances, and the requests decide how
@@ -155,9 +155,8 @@ where those versions differ, REDUX in particular.
   (for example Homebrew's `gnu-sed`). The steps themselves are not affected.
 - redux-rs does not draw the base-quality recalibration plot (`-bqr_write_plot`); no later step
   reads it.
-- Run end to end on Google Batch only on a 2M-read-pair test (below); not yet on a whole genome or on
-  AWS Batch, so the whole-genome memory of each step inside the pipeline (and of the one-call ESVEE
-  mode) is not yet measured.
+- Run end to end on Google Batch on a 2M-read-pair test and on one 35x whole-genome pair (below); not
+  yet on AWS Batch.
 
 ## Google Batch
 
@@ -197,6 +196,44 @@ into, all fixed or worked around:
 Peak memory on the test, for scale only (2M read pairs is about 0.1x): bwa-mem3 17.7 GB (of the
 96 GB requested), REDUX 1.3 GB, SAGE 0.4 GB, ESVEE 1.9 GB; of the Java steps, PAVE germline 9.6 GB,
 LILAC 9.6 GB and AMBER 6.9 GB used the most.
+
+### Whole genome
+
+A 35x Illumina tumor/normal pair from FASTQ (7 lanes, 3 and 4 per sample; DNA only, `-profile
+rust_ports`) ran end to end on 2026-11-24 in 3 h 18 min, for about $17 of on-demand N2 machines in
+us-central1. Every step completed. The Rust steps and bwa-mem3 (time inside the task, peak memory,
+average cores in use; machine sizes set in a private config):
+
+| Step | Machine | Time | Peak memory | Cores in use |
+|---|---|---|---|---|
+| bwa-mem3, per lane (5 lanes at a time) | 64 vCPU | 19-39 min | 62-66 GB | about 37 |
+| REDUX, per sample (its lane BAMs as `-input_bam a,b,...`) | 16 vCPU | 39.5 min | 2.4 GB | about 4 |
+| SAGE somatic | 16 vCPU | 16.5 min | 1.9 GB | 6.6 |
+| SAGE germline | 16 vCPU | 1.8 min | 0.8 GB | 0.3 |
+| ESVEE (one call: prep, assembly, depth, caller) | 16 vCPU | 63.5 min | 12.9 GB | 1.7 |
+
+- **The bucket mount was the bottleneck.** Task inputs are links into the bucket mounted with
+  gcsfuse, and without a cache every small read of a file is a network read. ESVEE's assembly reads
+  the reference FASTA in many small pieces: 47 of its 63 minutes. From the same prep output, assembly
+  took 2.1 minutes with the inputs copied to local disk first, and 2.5 minutes read through the mount
+  with the gcsfuse file cache on. A file is cached only if it fits, so a 12 GB cache holds the FASTA
+  (3.2 GB), the BWA image (5.6 GB) and the resource files, while the BAMs (18 GB and up) are still
+  streamed:
+
+  ```groovy
+  google.batch.gcsfuseOptions = ['-o rw', '-implicit-dirs', '--cache-dir=/tmp', '--file-cache-max-size-mb=12288',
+                                 '--file-cache-cache-file-for-range-read=true', '--file-cache-enable-parallel-downloads=true']
+  ```
+
+  The Java tools read the reference the same way, so the setting should help them too. Not yet
+  measured over a whole pipeline run; REDUX and SAGE, which also used few of their cores, are the
+  steps to watch.
+- **ESVEE output depended on thread timing** on this pair, whose tumor and normal come from different
+  sequencing runs: assembly shortened read names as Java ESVEE does (finding A5 in the port's
+  REPORT.md), and two 16-thread runs from the same prep output differed. Corrected by default from
+  hmftools commit 1b2682730e; on this pair the assembly output is then identical at 16, 16 and 1
+  threads. Runs with an earlier image are affected only when the read names of tumor and normal (or of
+  the lanes of one sample) come from runs with prefixes of different lengths.
 
 ## Checking the wiring
 
