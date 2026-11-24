@@ -32,6 +32,8 @@ nextflow run slowkow/oncoanalyser -r rust-ports \
 | `--rust_ports_container` | `hmftools-rust:dev` | image with the ports (built locally, see below) |
 | `--rust_ports_bin` | not set | folder with the ports on the host; these steps then run without a container (see below) |
 | `--rust_java_compat` | `false` | reproduce the Java tools' output exactly, including the faults the ports correct by default |
+| `--rust_low_base_qual_threshold` | not set (26) | SAGE and ESVEE: bases at or below this quality are low quality |
+| `--rust_high_base_qual_threshold` | not set (30) | SAGE and ESVEE: Illumina bases at or above this quality are high quality |
 
 Give `--rust_ports_bin` and `--rust_java_compat` on the command line or in a `-params-file`: they are
 read while the configuration is loaded, so a value set in a `-c` config file is not seen.
@@ -42,6 +44,14 @@ starts, and Nextflow then warns once at start-up, before the pipeline's paramete
 By default the ports correct the faults found in the Java code (each is listed with an id in the
 port's `REPORT.md`). `--rust_java_compat true` sets `SAGE_JAVA_COMPAT`, `REDUX_JAVA_COMPAT` and
 `ESVEE_JAVA_COMPAT` in the task environment, which makes each port behave as Java does.
+
+The two base-quality parameters are options of the ports, not of the Java tools, so they apply only to
+the steps that run as ports. They are for data whose base qualities were rewritten by recalibration and
+stop below Q30: Java SAGE then passes no SNV, since it counts only bases at Q30 or above towards
+`minTumorSupport`, and Java ESVEE treats most of the tumor's bases as low quality, so the tumor
+supports few SVs. Each port's README says what the bands do. When neither is set the task commands are
+unchanged (so is the `-resume` cache); they can be given anywhere, including a `-c` file. Hartwig
+tuned its filters on data with the usual qualities, so calls made with moved bands need checking.
 
 The profiles also lower the memory requested for these steps (SAGE and REDUX 8 GB, ESVEE 24 GB, each
 doubled on retry), since the ports need a few GB where the Java tools are given 36 to 72 GB. More

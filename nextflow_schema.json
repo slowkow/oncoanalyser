@@ -246,6 +246,22 @@
                     "type": "boolean",
                     "description": "Make the Rust ports reproduce the Java tools' output exactly, including the faults they correct by default.",
                     "fa_icon": "fas fa-equals"
+                },
+                "rust_low_base_qual_threshold": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 92,
+                    "description": "Rust SAGE and ESVEE: bases at or below this quality are low quality (Java's fixed value is 26).",
+                    "help_text": "Not an option of the Java tools. For data whose base qualities were rewritten (BQSR) and stop below Q30. Must be below rust_high_base_qual_threshold.",
+                    "fa_icon": "fas fa-sliders-h"
+                },
+                "rust_high_base_qual_threshold": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 93,
+                    "description": "Rust SAGE and ESVEE: Illumina bases at or above this quality are high quality (Java's fixed value is 30). SAGE counts only these towards minTumorSupport.",
+                    "help_text": "Not an option of the Java tools. With qualities that stop below Q30 no SNV passes SAGE at the default.",
+                    "fa_icon": "fas fa-sliders-h"
                 }
             }
         },
