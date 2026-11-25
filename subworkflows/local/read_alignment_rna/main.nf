@@ -165,7 +165,8 @@ workflow READ_ALIGNMENT_RNA {
 
             return tuple(groupKey(meta_group, group_size), aln)
         }
-        .groupTuple()
+        // Lane BAMs in file-name order, not in the order the lanes finished (see read_alignment_dna)
+        .groupTuple(sort: { a, b -> a.name <=> b.name })
 
     //
     // MODULE: TARS

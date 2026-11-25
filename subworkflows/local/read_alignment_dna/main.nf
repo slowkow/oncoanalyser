@@ -184,7 +184,9 @@ workflow READ_ALIGNMENT_DNA {
 
             return tuple(groupKey(meta_group, group_size), aln, idx)
         }
-        .groupTuple()
+        // Lane BAMs in file-name order, not in the order the lanes finished: REDUX merges its inputs in the
+        // order given, and its output depends on that order (as does the task hash, so -resume)
+        .groupTuple(sort: { a, b -> a.name <=> b.name })
         .branch { meta_group, alns, idxs ->
             assert ['tumor', 'normal', 'donor'].contains(meta_group.sample_type)
             tumor: meta_group.sample_type == 'tumor'
