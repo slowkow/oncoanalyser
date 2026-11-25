@@ -26,13 +26,16 @@ process BWAMEM3_ALIGN_DNA {
     def args3 = task.ext.args3 ?: ''
 
     def output_fn = meta.split ? "${meta.split}.${meta.output_file_id}.bam" : "${meta.output_file_id}.bam"
+    // fork: --bwamem3_compat none (the default here) runs bwa-mem3's own mode: the same alignments as compat mode
+    // plus the MQ and HN tags; bwa-mem2 gives upstream's records exactly
+    def compat_arg = params.bwamem3_compat in [null, '', 'none'] ? '' : "--compat=${params.bwamem3_compat}"
 
     """
     ln -fs \$(find -L ${genome_bwamem2_index} -type f) ./
 
     # NOTE(RJ): compat mode writes the same records as bwa-mem2 and reads the bwa-mem2 index
     bwa-mem3 mem \\
-        --compat=bwa-mem2 \\
+        ${compat_arg} \\
         ${args} \\
         -Y \\
         -K 100000000 \\

@@ -25,6 +25,8 @@ process BWAMEM3_ALIGN_RNA {
     def args2 = task.ext.args2 ?: ''
 
     def output_fn = meta.split ? "${meta.split}.${meta.output_file_id}.bam" : "${meta.output_file_id}.bam"
+    // fork: --bwamem3_compat, as in the DNA module
+    def compat_arg = params.bwamem3_compat in [null, '', 'none'] ? '' : "--compat=${params.bwamem3_compat}"
 
     // NOTE(LN): TARS consumes read groups:
     // - Output BAM must therefore stay name-grouped, not coordinate sorted
@@ -34,7 +36,7 @@ process BWAMEM3_ALIGN_RNA {
 
     # NOTE(RJ): compat mode writes the same records as bwa-mem2 and reads the bwa-mem2 index
     bwa-mem3 mem \\
-        --compat=bwa-mem2 \\
+        ${compat_arg} \\
         ${args} \\
         -Y \\
         -K 100000000 \\

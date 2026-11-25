@@ -4,7 +4,10 @@ This fork of nf-core/oncoanalyser (branch `rust-ports`) runs the pipeline with:
 
 - **bwa-mem3** for read alignment. The branch starts from upstream's `bwa-mem3` branch (Hartwig's
   development line for oncoanalyser 3.1), which already replaces BWA-MEM2 with bwa-mem3. Upstream runs
-  it with `--compat=bwa-mem2`, which reads the BWA-MEM2 index and writes the same records as BWA-MEM2.
+  it with `--compat=bwa-mem2`, which writes the same records as BWA-MEM2. This fork runs bwa-mem3's own
+  mode by default (`--bwamem3_compat none`; `bwa-mem2` gives upstream's records), which bwa-mem3's authors
+  recommend for new pipelines: on a whole-genome lane it gave the same alignment as compat mode in every
+  record, in the same time, and adds the `MQ` (mate mapping quality) and `HN` tags (Alignment, below).
 - **No fastp.** fastp only split FASTQ files into chunks for parallel alignment (or extracted UMIs);
   it changed no reads. `max_fastq_records` defaults to `-1`, so FASTQs are aligned whole and fastp
   does not run unless UMIs are enabled.
@@ -237,15 +240,31 @@ $3.75 the second.
   Over the whole second run: ESVEE 63.5 to 21 minutes, CIDER (Java) 54 minutes to 31 seconds, AMBER
   19 to 16, SAGE somatic 16.5 to 14.5; REDUX, which reads only the BAMs, did not change. Alignment was
   slower: by bwa-mem3's own profile it spent 1.5 to 2 times as long reading the FASTQs of the normal
-  lanes (25 GB each, streamed in both runs), so all lanes took 64 minutes instead of 53. Whether that is
-  the cache setting or the bucket on the day is not known from one run each.
+  lanes, so all lanes took 64 minutes instead of 53. The cause is the cache: each FASTQ of the normal
+  (12.2 to 12.6 GB) is just under the cache size, so gcsfuse copies the whole file to the boot disk as
+  it is read, in parallel downloads, on the disk that the sort writes to; a lane's two FASTQs do not fit
+  together. The tumor's FASTQs (16 to 17 GB) are too large to be cached, and those lanes were not slower
+  on average. Leaving FASTQs out of the cache fixes it (Alignment, below):
+
+  ```groovy
+  google.batch.gcsfuseOptions = ['-o rw', '-implicit-dirs', '--cache-dir=/tmp', '--file-cache-max-size-mb=12288',
+                                 '--file-cache-cache-file-for-range-read=true', '--file-cache-enable-parallel-downloads=true',
+                                 '--file-cache-exclude-regex=fastq']
+  ```
+
+  The pattern is unanchored, so it leaves out every path that contains `fastq`. Google Batch refuses
+  mount options with `*`, `(`, `|` or `$` in them ("potential shell injection"), so a narrower regex
+  cannot be given.
 - **Same inputs, same outputs.** The seven lane BAMs of the two runs are byte-identical (bwa-mem3 is
   deterministic), and so is the normal's REDUX BAM. The tumor's REDUX BAM differed in 7,751 of 1.59
   billion records (60 duplicate flags, the rest bases and qualities of consensus reads), because REDUX
   was given the tumor's three lane BAMs in another order: Nextflow listed them in the order the lanes
   finished, and REDUX's result depends on the order of its inputs, Java's too (finding R41 in
   `redux-rs/REPORT.md`: a tie between two bases of a consensus is given to the first read). The lane
-  BAMs are now listed by file name (`read_alignment_dna`, `read_alignment_rna`). Downstream, the two runs have the same purity, ploidy, copy number and driver
+  BAMs are now listed by file name (`read_alignment_dna`, `read_alignment_rna`), and from hmftools
+  commit e23fce9d03 redux-rs corrects R41 by default: it reads its inputs in the order of their headers,
+  whatever the order given. With the same three lane BAMs given in the two orders of these runs, its
+  BAM, index and side files were byte-identical. Downstream, the two runs have the same purity, ploidy, copy number and driver
   catalog, the same 3,824 PASS small variants, and the same 298 PASS somatic structural variant
   breakends.
 - **ESVEE output depended on thread timing** on this pair, whose tumor and normal come from different
@@ -255,6 +274,23 @@ $3.75 the second.
   identical at 16, 16 and 1 threads. Runs with an earlier image are affected only when the read names
   of tumor and normal (or of the lanes of one sample) come from runs with prefixes of different
   lengths.
+
+### Alignment: bwa-mem3 mode and the file cache
+
+One normal lane of the pair (25 GB of FASTQ, about 160 million read pairs) was aligned three more times on
+2026-11-25, with the rerun's command on the same machine type (n2-standard-64), the three at the same
+time so that they shared the bucket's conditions:
+
+| bwa-mem3 0.15.0 | gcsfuse file cache | Task time | FASTQ reading (bwa-mem3's profile) | Output |
+|---|---|---|---|---|
+| `--compat=bwa-mem2` | off | 20.2 min | 362 s | the rerun's lane BAM, byte for byte |
+| `--compat=bwa-mem2` | on (FASTQs cached) | 21.2 min | 577 s | the same |
+| own mode | off | 19.8 min | 358 s | every record the same as compat mode's apart from the added `MQ` and `HN` tags; reads that start at one position in another order |
+
+The same lane took 19.9 minutes in the first run (no cache) and 27.8 in the second (cache, five lanes
+at a time, 797 s reading). A test job showed that the cache copies a FASTQ in full as soon as it is
+read (3.9 GB within 30 seconds of a 200 MB read), and that with `--file-cache-exclude-regex=fastq` it
+copies none while still caching the reference files. The test jobs cost $3.87.
 
 The same pair was also run with the Java tools (`-profile` without `rust_ports`), on the same bwa-mem3
 alignments taken from the first run's cache, without the gcsfuse cache; against the first Rust run:

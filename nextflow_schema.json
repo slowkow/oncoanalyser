@@ -188,6 +188,14 @@
                     "description": "When positive, parallelise read alignment across multiple jobs by splitting fastq files into multiple fastq files with no more than max_fastq_records records.",
                     "fa_icon": "fas fa-cog"
                 },
+                "bwamem3_compat": {
+                    "type": "string",
+                    "default": "none",
+                    "enum": ["none", "bwa-mem2", "bwa-mem"],
+                    "description": "bwa-mem3 --compat target: none runs bwa-mem3's own mode; bwa-mem2 or bwa-mem writes those aligners' records exactly.",
+                    "help_text": "On a whole-genome lane the own mode gave the same alignments as --compat=bwa-mem2 in every record, plus the MQ (mate mapping quality) and HN tags, in the same time. Upstream uses bwa-mem2.",
+                    "fa_icon": "fas fa-cog"
+                },
                 "driver_gene_panel": {
                     "type": "string",
                     "description": "User defined driver gene panel used in panel resource creation, or for overriding the default file located in ref_data_hmf_data_path",
