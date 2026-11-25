@@ -71,7 +71,7 @@ given, which oncoanalyser sets to 95% of the task's memory):
 
 CPUs and memory are doubled on each retry (`task.attempt`). The CPU requests are upstream's
 (`process_high`); the memory requests are this fork's (upstream asks 72 GB). The one-call ESVEE mode,
-which oncoanalyser runs, peaked at 12.9 GB on a 35x whole genome on Google Batch (section "Whole
+which oncoanalyser runs, peaked at 12.9 and 14.3 GB in two runs of a 35x whole genome on Google Batch (section "Whole
 genome" below), within the 24 GB requested.
 
 On Google Batch every task gets its own VM, chosen from the CPU and memory requested, so the requests
@@ -200,17 +200,26 @@ LILAC 9.6 GB and AMBER 6.9 GB used the most.
 ### Whole genome
 
 A 35x Illumina tumor/normal pair from FASTQ (7 lanes, 3 and 4 per sample; DNA only, `-profile
-rust_ports`) ran end to end on 2026-11-24 in 3 h 18 min, for about $17 of on-demand N2 machines in
-us-central1. Every step completed. The Rust steps and bwa-mem3 (time inside the task, peak memory,
-average cores in use; machine sizes set in a private config):
+rust_ports`) was run end to end twice, each time from the FASTQs: on 2026-11-24, and on 2026-11-25
+with the gcsfuse file cache (below) and ESVEE's correction of finding A5. Every step completed both
+times. Alignment is bwa-mem3 0.15.0 with `--compat=bwa-mem2` (this branch's module), one task per lane
+on 64-vCPU machines, five lanes at a time. Time is inside the task, peak memory is the task's; costs are
+each Batch job's machine and boot disk from the creation of its VM to the end of the job, at us-central1
+on-demand N2 prices (storage and network not included):
 
-| Step | Machine | Time | Peak memory | Cores in use |
+| Step | Machine | First run: time, peak memory | Second run, with the cache: time, peak memory | Cost, second run |
 |---|---|---|---|---|
-| bwa-mem3, per lane (5 lanes at a time) | 64 vCPU | 19-39 min | 62-66 GB | about 37 |
-| REDUX, per sample (its lane BAMs as `-input_bam a,b,...`) | 16 vCPU | 39.5 min | 2.4 GB | about 4 |
-| SAGE somatic | 16 vCPU | 16.5 min | 1.9 GB | 6.6 |
-| SAGE germline | 16 vCPU | 1.8 min | 0.8 GB | 0.3 |
-| ESVEE (one call: prep, assembly, depth, caller) | 16 vCPU | 63.5 min | 12.9 GB | 1.7 |
+| Alignment, bwa-mem3, per lane | 64 vCPU | 19-39 min, 62-66 GB | 21-41 min, 62-66 GB | |
+| Alignment, all 7 lanes | | 53 min, 3.6 VM hours, $11.85 | 64 min, 4.0 VM hours | $13.03 |
+| REDUX, per sample (its lane BAMs as `-input_bam a,b,...`) | 16 vCPU | 39.5 min, 2.4 GB | 38-39 min, 2.3 GB | $1.51 (both) |
+| SAGE somatic | 16 vCPU | 16.5 min, 1.9 GB | 14.5 min, 1.8 GB | $0.16 |
+| SAGE germline | 16 vCPU | 1.8 min, 0.8 GB | 1.4 min, 0.8 GB | $0.02 |
+| ESVEE (one call: prep, assembly, depth, caller) | 16 vCPU | 63.5 min, 12.9 GB | 21 min, 14.3 GB | $0.31 |
+| Every other step (Java tools) | | | | $1.75 |
+| Whole run | | 3 h 18 min, $17.21 | 2 h 42 min | $16.78 |
+
+Alignment is most of the cost (69% and 78%). After alignment the run cost $5.36 the first time and
+$3.75 the second.
 
 - **The bucket mount was the bottleneck.** Task inputs are links into the bucket mounted with
   gcsfuse, and without a cache every small read of a file is a network read. ESVEE's assembly reads
@@ -225,25 +234,39 @@ average cores in use; machine sizes set in a private config):
                                  '--file-cache-cache-file-for-range-read=true', '--file-cache-enable-parallel-downloads=true']
   ```
 
-  The Java tools read the reference the same way, so the setting should help them too. Not yet
-  measured over a whole pipeline run; REDUX and SAGE, which also used few of their cores, are the
-  steps to watch.
+  Over the whole second run: ESVEE 63.5 to 21 minutes, CIDER (Java) 54 minutes to 31 seconds, AMBER
+  19 to 16, SAGE somatic 16.5 to 14.5; REDUX, which reads only the BAMs, did not change. Alignment was
+  slower: by bwa-mem3's own profile it spent 1.5 to 2 times as long reading the FASTQs of the normal
+  lanes (25 GB each, streamed in both runs), so all lanes took 64 minutes instead of 53. Whether that is
+  the cache setting or the bucket on the day is not known from one run each.
+- **Same inputs, same outputs.** The seven lane BAMs of the two runs are byte-identical (bwa-mem3 is
+  deterministic), and so is the normal's REDUX BAM. The tumor's REDUX BAM differed in 7,751 of 1.59
+  billion records (60 duplicate flags, the rest bases and qualities of consensus reads), because REDUX
+  was given the tumor's three lane BAMs in another order: Nextflow listed them in the order the lanes
+  finished, and REDUX's result depends on the order of its inputs, Java's too (finding R41 in
+  `redux-rs/REPORT.md`: a tie between two bases of a consensus is given to the first read). The lane
+  BAMs are now listed by file name (`read_alignment_dna`, `read_alignment_rna`). Downstream, the two runs have the same purity, ploidy, copy number and driver
+  catalog, the same 3,824 PASS small variants, and the same 298 PASS somatic structural variant
+  breakends.
 - **ESVEE output depended on thread timing** on this pair, whose tumor and normal come from different
   sequencing runs: assembly shortened read names as Java ESVEE does (finding A5 in the port's
   REPORT.md), and two 16-thread runs from the same prep output differed. Corrected by default from
-  hmftools commit 1b2682730e; on this pair the assembly output is then identical at 16, 16 and 1
-  threads. Runs with an earlier image are affected only when the read names of tumor and normal (or of
-  the lanes of one sample) come from runs with prefixes of different lengths.
+  hmftools commit 1b2682730e (the image of the second run); on this pair the assembly output is then
+  identical at 16, 16 and 1 threads. Runs with an earlier image are affected only when the read names
+  of tumor and normal (or of the lanes of one sample) come from runs with prefixes of different
+  lengths.
 
-The same pair was then run with the Java tools (`-profile` without `rust_ports`), on the same bwa-mem3
-alignments taken from the cache, without the gcsfuse cache in either run:
+The same pair was also run with the Java tools (`-profile` without `rust_ports`), on the same bwa-mem3
+alignments taken from the first run's cache, without the gcsfuse cache; against the first Rust run:
 
 | Step | Java: time, peak memory | Rust: time, peak memory |
 |---|---|---|
+| Alignment, bwa-mem3 0.15.0, 7 lanes (the same tasks) | 53 min, $11.85 | 53 min, $11.85 |
 | REDUX, per sample | 1.2-1.4 h, 30 GB | 39.5 min, 2.4 GB |
-| SAGE somatic | 3.7 h, 61 GB | 16.5 min, 1.9 GB (12.5 min with the gcsfuse cache) |
-| ESVEE | 1.2 h, 108 GB (above its 96 GB request; the machine had 128 GB) | 63.5 min, 12.9 GB (15.7 min with the cache) |
-| Every step after alignment, cost | about $11.30 | about $4.60 |
+| SAGE somatic | 3.7 h, 61 GB | 16.5 min, 1.9 GB (14.5 min with the gcsfuse cache) |
+| ESVEE | 1.2 h, 108 GB (above its 96 GB request; the machine had 128 GB) | 63.5 min, 12.9 GB (21 min with the cache) |
+| Every step after alignment, cost | $11.77 | $5.36 ($3.75 with the cache) |
+| Whole run, cost | $23.62 | $17.21 ($16.78 with the cache) |
 
 Results agree: purity, ploidy and contamination are the same; REDUX marks the same duplicates to
 within 16 reads of 2.5 billion and BamTools' coverage metrics are identical; of the PASS somatic
