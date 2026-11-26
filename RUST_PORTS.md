@@ -203,26 +203,29 @@ LILAC 9.6 GB and AMBER 6.9 GB used the most.
 ### Whole genome
 
 A 35x Illumina tumor/normal pair from FASTQ (7 lanes, 3 and 4 per sample; DNA only, `-profile
-rust_ports`) was run end to end twice, each time from the FASTQs: on 2026-11-24, and on 2026-11-25
-with the gcsfuse file cache (below) and ESVEE's correction of finding A5. Every step completed both
-times. Alignment is bwa-mem3 0.15.0 with `--compat=bwa-mem2` (this branch's module), one task per lane
-on 64-vCPU machines, five lanes at a time. Time is inside the task, peak memory is the task's; costs are
-each Batch job's machine and boot disk from the creation of its VM to the end of the job, at us-central1
-on-demand N2 prices (storage and network not included):
+rust_ports`) was run end to end three times, each time from the FASTQs: on 2026-11-24; on 2026-11-25
+with the gcsfuse file cache (below) and ESVEE's correction of finding A5; and on 2026-11-26 with
+bwa-mem3's own mode (this fork's default, `--bwamem3_compat none`), the FASTQs left out of the cache,
+and the corrections found by the review of 2026-11-25 (hmftools ed4c31e8c6: REDUX R41-R47, SAGE
+S49-S51, ESVEE A37-A41 and C18). Every step completed each time. Alignment is bwa-mem3 0.15.0, one task
+per lane on n2-standard-64 machines, five lanes at a time; the first two runs used `--compat=bwa-mem2`.
+Time is inside the task, peak memory is the task's; costs are each Batch job's machine and boot disk
+from the creation of its VM to the end of the job, at us-central1 on-demand N2 prices (storage and
+network not included):
 
-| Step | Machine | First run: time, peak memory | Second run, with the cache: time, peak memory | Cost, second run |
-|---|---|---|---|---|
-| Alignment, bwa-mem3, per lane | 64 vCPU | 19-39 min, 62-66 GB | 21-41 min, 62-66 GB | |
-| Alignment, all 7 lanes | | 53 min, 3.6 VM hours, $11.85 | 64 min, 4.0 VM hours | $13.03 |
-| REDUX, per sample (its lane BAMs as `-input_bam a,b,...`) | 16 vCPU | 39.5 min, 2.4 GB | 38-39 min, 2.3 GB | $1.51 (both) |
-| SAGE somatic | 16 vCPU | 16.5 min, 1.9 GB | 14.5 min, 1.8 GB | $0.16 |
-| SAGE germline | 16 vCPU | 1.8 min, 0.8 GB | 1.4 min, 0.8 GB | $0.02 |
-| ESVEE (one call: prep, assembly, depth, caller) | 16 vCPU | 63.5 min, 12.9 GB | 21 min, 14.3 GB | $0.31 |
-| Every other step (Java tools) | | | | $1.75 |
-| Whole run | | 3 h 18 min, $17.21 | 2 h 42 min | $16.78 |
+| Step | Machine | First run | Second run (cache) | Third run (own mode, FASTQs not cached) | Cost, third run |
+|---|---|---|---|---|---|
+| Alignment, bwa-mem3 0.15.0, per lane | 64 vCPU | 19-39 min, 62-66 GB | 21-41 min, 62-66 GB | 19-39 min, 62-66 GB | |
+| Alignment, all 7 lanes | | 53 min, 3.6 VM hours, $11.85 | 64 min, 4.0 VM hours, $13.03 | 52 min, 3.6 VM hours | $11.58 |
+| REDUX, per sample (its lane BAMs as `-input_bam a,b,...`) | 16 vCPU | 39.5 min, 2.4 GB | 38-39 min, 2.3 GB | 33-36 min, 2.4 GB | $1.41 (both) |
+| SAGE somatic | 16 vCPU | 16.5 min, 1.9 GB | 14.5 min, 1.8 GB | 16.6 min, 2.0 GB | $0.18 |
+| SAGE germline | 16 vCPU | 1.8 min, 0.8 GB | 1.4 min, 0.8 GB | 1.5 min, 0.8 GB | $0.02 |
+| ESVEE (one call: prep, assembly, depth, caller) | 16 vCPU | 63.5 min, 12.9 GB | 21 min, 14.3 GB | 16.5 min, 13.2 GB | $0.25 |
+| Every other step (Java tools) | | | | | $1.81 |
+| Whole run | | 3 h 18 min, $17.21 | 2 h 42 min, $16.78 | 2 h 27 min | $15.25 |
 
-Alignment is most of the cost (69% and 78%). After alignment the run cost $5.36 the first time and
-$3.75 the second.
+Alignment is most of the cost (69%, 78% and 76%). After alignment the runs cost $5.36, $3.75 and
+$3.67.
 
 - **The bucket mount was the bottleneck.** Task inputs are links into the bucket mounted with
   gcsfuse, and without a cache every small read of a file is a network read. ESVEE's assembly reads
@@ -267,6 +270,28 @@ $3.75 the second.
   BAM, index and side files were byte-identical. Downstream, the two runs have the same purity, ploidy, copy number and driver
   catalog, the same 3,824 PASS small variants, and the same 298 PASS somatic structural variant
   breakends.
+- **Third run.** With the FASTQs out of the cache, the normal lanes took 19-21 minutes again (bwa-mem3
+  read their FASTQs in 401-433 s, against 614-797 s in the second run) and all lanes 52 minutes. Purity,
+  ploidy, the somatic and germline driver catalogs and the reported fusions (none) are the same as in the
+  second run; copy numbers differ in the fourth decimal and PURPLE has 1,189 segments instead of 1,200.
+  PASS small variants 3,824 to 3,823, PASS somatic structural variant breakends 298 to 289, germline
+  27,428 to 27,202. To separate the new alignments from the new corrections, the second run's SAGE and
+  ESVEE tasks were run again with the third run's image ($0.52): on the second run's BAMs the new image
+  gives the third run's PASS calls exactly (SAGE somatic, ESVEE somatic), so every PASS difference comes
+  from the corrections and none from bwa-mem3's own mode or the REDUX corrections (whose BAMs mark 16
+  fewer duplicates in each sample of 1.2 to 1.3 billion reads, and whose base quality recalibration moves by
+  0.03 or less). By correction:
+  - SAGE S49 (deletions of 6 or more units of a microsatellite took the MSI quality path): 17 SAGE PASS
+    calls become `minTumorQual` and 2 become PASS, all homopolymer deletions of 6 to 23 bases; one of the
+    17 had reached PURPLE's PASS calls.
+  - ESVEE A40 (fuzzy local match of an assembly's extension): one ESVEE run per new correction, with that
+    correction alone taken back to Java's behaviour ($1.58 for six), puts all 9 lost somatic breakends on
+    A40: with Java's match they come back, and nothing else does. They are 5 events, all in satellite or
+    simple-repeat sequence near centromeres, with quality 32 to 50; Java leaves each assembly unlinked and
+    calls a breakend to another satellite copy (or a single breakend); the corrected match links it to the
+    local reference within 500 bases, as a duplication or deletion of 51 to 407 bases, which the somatic
+    filters then drop. Seven of the 9 are also in the Java run. A40 also accounts for 191 of the 226 fewer
+    germline breakends (A37 18, A41 16; P13 and A38 nothing).
 - **ESVEE output depended on thread timing** on this pair, whose tumor and normal come from different
   sequencing runs: assembly shortened read names as Java ESVEE does (finding A5 in the port's
   REPORT.md), and two 16-thread runs from the same prep output differed. Corrected by default from
