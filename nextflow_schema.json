@@ -196,6 +196,14 @@
                     "help_text": "On a whole-genome lane the own mode gave the same alignments as --compat=bwa-mem2 in every record, plus the MQ (mate mapping quality) and HN tags, in the same time. Upstream uses bwa-mem2.",
                     "fa_icon": "fas fa-cog"
                 },
+                "rna_aligner": {
+                    "type": "string",
+                    "default": "star",
+                    "enum": ["star", "bwa-mem3"],
+                    "description": "RNA aligner: star is nf-core/oncoanalyser dev's route (STAR, samtools sort, Picard MarkDuplicates; needs --ref_data_genome_star_index); bwa-mem3 aligns to the genome with transcript contigs appended and lifts the alignments back with TARS, which needs RNA resources Hartwig has not published.",
+                    "help_text": "bwa-mem3 + TARS needs --ref_data_genome_fasta_rna, --ref_data_genome_bwamem2_index_rna and the contigs_mapping_rna and unmap_regions_rna resource files. With star, REDUX does not run on RNA and later steps read the MarkDuplicates BAM; FASTQs are not split (max_fastq_records) for STAR.",
+                    "fa_icon": "fas fa-cog"
+                },
                 "driver_gene_panel": {
                     "type": "string",
                     "description": "User defined driver gene panel used in panel resource creation, or for overriding the default file located in ref_data_hmf_data_path",
@@ -389,6 +397,11 @@
                 "ref_data_genome_bwamem2_index_rna": {
                     "type": "string",
                     "description": "Path to RNA reference genome bwa-mem2 index.",
+                    "fa_icon": "far fa-file-code"
+                },
+                "ref_data_genome_star_index": {
+                    "type": "string",
+                    "description": "Path to reference genome STAR index (directory or .tar.gz), used with --rna_aligner star.",
                     "fa_icon": "far fa-file-code"
                 },
                 "prepare_reference_only": {

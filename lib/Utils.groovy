@@ -415,6 +415,7 @@ class Utils {
             params.ref_data_genome_fai_rna,
             params.ref_data_genome_dict_rna,
             params.ref_data_genome_bwamem2_index_rna,
+            params.ref_data_genome_star_index,
         ]
 
         params.hmf_data_paths[params.genome_version.toString()]
@@ -539,14 +540,23 @@ class Utils {
             Nextflow.exit(1)
         }
 
-        // Require the RNA reference genome and its index, neither of which can be created by the pipeline
+        // Require the reference data of the RNA aligner (--rna_aligner), none of which can be created by the pipeline
         def run_rna_alignment = run_config.stages.alignment && run_config.has_rna_fastq
 
-        if (run_rna_alignment && ! (params.ref_data_genome_fasta_rna && params.ref_data_genome_bwamem2_index_rna)) {
+        if (run_rna_alignment && params.rna_aligner == 'bwa-mem3' && ! (params.ref_data_genome_fasta_rna && params.ref_data_genome_bwamem2_index_rna)) {
             log.error "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" +
-                "  RNA alignment requires the reference genome with transcript contigs appended and\n" +
-                "  its bwa-mem2 index. Neither can be created by the pipeline; please provide both\n" +
-                "  with --ref_data_genome_fasta_rna and --ref_data_genome_bwamem2_index_rna.\n" +
+                "  RNA alignment with bwa-mem3 requires the reference genome with transcript contigs\n" +
+                "  appended and its bwa-mem2 index. Neither can be created by the pipeline; please\n" +
+                "  provide both with --ref_data_genome_fasta_rna and --ref_data_genome_bwamem2_index_rna,\n" +
+                "  or align RNA with STAR (--rna_aligner star).\n" +
+                "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+            Nextflow.exit(1)
+        }
+
+        if (run_rna_alignment && params.rna_aligner == 'star' && ! params.ref_data_genome_star_index) {
+            log.error "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" +
+                "  RNA alignment with STAR requires a STAR index, which the pipeline does not create;\n" +
+                "  please provide one (directory or .tar.gz) with --ref_data_genome_star_index.\n" +
                 "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
             Nextflow.exit(1)
         }
@@ -882,6 +892,17 @@ class Utils {
         }
 
         def redux_bam = redux_dir.resolve("${sample_name}.redux.bam")
+        if (redux_bam.exists()) {
+            return [redux_bam, "${redux_bam.toUriString()}.bai"]
+        }
+
+        // NOTE(fork): RNA aligned with STAR (--rna_aligner star) is not processed by REDUX; its MarkDuplicates directory
+        // stands in for the REDUX directory
+        def md_bam = redux_dir.resolve("${sample_name}.md.bam")
+        if (md_bam.exists()) {
+            return [md_bam, "${md_bam.toUriString()}.bai"]
+        }
+
         return [redux_bam, "${redux_bam.toUriString()}.bai"]
     }
 

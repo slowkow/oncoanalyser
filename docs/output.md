@@ -108,10 +108,20 @@ _No outputs are published directly from bwa-mem3, see [REDUX](#redux) for the fu
 
 #### STAR
 
+<details markdown="1">
+<summary>Output files</summary>
+
+- `<group_id>/star/`
+  - `<tumor_rna_id>.Log.final.out`: Tumor RNA sample STAR alignment summary.
+
+</details>
+
 [STAR](https://github.com/alexdobin/STAR) is a specialised mapping tool used to align RNA reads to a reference
 transcriptome.
 
-_No outputs are published directly from STAR, see [Picard MarkDuplicates](#picard-markduplicates) for the fully processed alignment outputs_
+_See [Picard MarkDuplicates](#picard-markduplicates) for the fully processed alignment outputs. STAR runs with
+`--rna_aligner star` (the default); `--rna_aligner bwa-mem3` aligns RNA with bwa-mem3 and TARS, and REDUX then
+processes the RNA alignments_
 
 ### Alignment post-processing
 
@@ -154,6 +164,7 @@ _REDUX is only run on DNA alignments_
 - `<group_id>/alignments/<tumor_rna_id>/`
   - `<tumor_rna_id>.md.bam`: Tumor RNA sample read alignments.
   - `<tumor_rna_id>.md.bam.bai`: Tumor RNA sample read alignments index.
+  - `<tumor_rna_id>.md.metrics`: Tumor RNA sample duplicate marking metrics.
 
 </details>
 

@@ -435,6 +435,15 @@ class WorkflowMain {
 
         }
 
+        // RNA aligner (this fork)
+        if (! Constants.RNA_ALIGNERS.contains(params.rna_aligner)) {
+            log.error "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" +
+                "  Got '${params.rna_aligner}' for --rna_aligner but the available RNA aligners are:\n" +
+                "    - ${Constants.RNA_ALIGNERS.join('\n    - ')}\n" +
+                "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+            Nextflow.exit(1)
+        }
+
         // UMI parameters
         if (params.fastp_umi_enabled && params.taur_umi_enabled) {
             log.error "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" +
@@ -515,6 +524,7 @@ class WorkflowMain {
             has_rna: inputs.any { Utils.hasTumorRna(it) },
             has_rna_fastq: inputs.any { Utils.hasTumorRnaFastq(it) },
             has_dna_fastq: inputs.any { Utils.hasTumorDnaFastq(it) || Utils.hasNormalDnaFastq(it) },
+            rna_aligner: params.rna_aligner,
         ]
     }
 
@@ -528,7 +538,8 @@ class WorkflowMain {
             require_img: true,
 
             require_bwamem2_index: run_config.has_dna_fastq && run_config.stages.alignment,
-            require_bwamem2_index_rna: run_config.has_rna_fastq && run_config.stages.alignment,
+            require_bwamem2_index_rna: run_config.has_rna_fastq && run_config.stages.alignment && run_config.rna_aligner == 'bwa-mem3',
+            require_star_index: run_config.has_rna_fastq && run_config.stages.alignment && run_config.rna_aligner == 'star',
 
             require_gridss_index: run_config.has_dna && run_config.mode == Constants.RunMode.WGTS && run_config.stages.virusinterpreter,
             require_hmftools_data: true,
@@ -579,7 +590,10 @@ class WorkflowMain {
         def require_img = ref_data_types.contains(Constants.RefDataType.IMG)
 
         def require_bwamem2_index = ref_data_types.contains(Constants.RefDataType.BWAMEM2_INDEX) || ref_data_types.contains(Constants.RefDataType.DNA_ALIGNMENT)
-        def require_bwamem2_index_rna = ref_data_types.contains(Constants.RefDataType.BWAMEM2_INDEX_RNA) || ref_data_types.contains(Constants.RefDataType.RNA_ALIGNMENT)
+        // NOTE(fork): rna_alignment selects the index of the RNA aligner set with --rna_aligner
+        def rna_alignment = ref_data_types.contains(Constants.RefDataType.RNA_ALIGNMENT)
+        def require_bwamem2_index_rna = ref_data_types.contains(Constants.RefDataType.BWAMEM2_INDEX_RNA) || (rna_alignment && params.rna_aligner == 'bwa-mem3')
+        def require_star_index = ref_data_types.contains(Constants.RefDataType.STAR_INDEX) || (rna_alignment && params.rna_aligner == 'star')
 
         def require_gridss_index = ref_data_types.contains(Constants.RefDataType.GRIDSS_INDEX)
         def require_hmftools_data = ref_data_types.contains(Constants.RefDataType.HMFTOOLS)
@@ -605,6 +619,7 @@ class WorkflowMain {
 
             require_bwamem2_index: require_bwamem2_index,
             require_bwamem2_index_rna: require_bwamem2_index_rna,
+            require_star_index: require_star_index,
 
             require_gridss_index: require_gridss_index,
             require_hmftools_data: require_hmftools_data,

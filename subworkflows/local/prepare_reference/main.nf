@@ -17,6 +17,7 @@ include { CUSTOM_EXTRACTTARBALL as DECOMP_GRIDSS_INDEX      } from '../../../mod
 include { CUSTOM_EXTRACTTARBALL as DECOMP_HMF_DATA          } from '../../../modules/local/custom/extract_tarball/main'
 include { CUSTOM_EXTRACTTARBALL as DECOMP_PANEL_DATA        } from '../../../modules/local/custom/extract_tarball/main'
 include { CUSTOM_EXTRACTTARBALL as DECOMP_BWAMEM2_INDEX_RNA } from '../../../modules/local/custom/extract_tarball/main'
+include { CUSTOM_EXTRACTTARBALL as DECOMP_STAR_INDEX        } from '../../../modules/local/custom/extract_tarball/main'
 
 include { WRITE_REFERENCE_DATA as WRITE_FASTA             } from '../../../modules/local/custom/write_reference_data/main'
 include { WRITE_REFERENCE_DATA as WRITE_FAI               } from '../../../modules/local/custom/write_reference_data/main'
@@ -29,6 +30,7 @@ include { WRITE_REFERENCE_DATA as WRITE_FASTA_RNA         } from '../../../modul
 include { WRITE_REFERENCE_DATA as WRITE_FAI_RNA           } from '../../../modules/local/custom/write_reference_data/main'
 include { WRITE_REFERENCE_DATA as WRITE_DICT_RNA          } from '../../../modules/local/custom/write_reference_data/main'
 include { WRITE_REFERENCE_DATA as WRITE_BWAMEM2_INDEX_RNA } from '../../../modules/local/custom/write_reference_data/main'
+include { WRITE_REFERENCE_DATA as WRITE_STAR_INDEX        } from '../../../modules/local/custom/write_reference_data/main'
 
 include { WRITE_REFERENCE_DATA as WRITE_HMF_DATA          } from '../../../modules/local/custom/write_reference_data/main'
 include { WRITE_REFERENCE_DATA as WRITE_PANEL_DATA        } from '../../../modules/local/custom/write_reference_data/main'
@@ -206,6 +208,35 @@ workflow PREPARE_REFERENCE {
     }
 
     //
+    // Set STAR index, unpack if required
+    //
+    // NOTE(fork): RNA alignment with STAR (rna_aligner 'star', nf-core/oncoanalyser dev's route). The index is not
+    // created here (no STAR_GENOMEGENERATE); Hartwig publishes one for each genome
+    ch_genome_star_index = channel.empty()
+    if (prep_config.require_star_index) {
+
+        if (! params.ref_data_genome_star_index) {
+            error 'RNA alignment with STAR requires --ref_data_genome_star_index (a STAR index directory or .tar.gz)'
+        }
+
+        if (params.ref_data_genome_star_index.endsWith('.tar.gz')) {
+
+            ch_genome_star_index_inputs = channel.of(params.ref_data_genome_star_index)
+                .map { fp_str -> def fp = file(fp_str); return [[topic_key: fp_str, id: "${fp.name.replaceAll('\\.tar\\.gz\$', '')}"], fp] }
+
+            DECOMP_STAR_INDEX(ch_genome_star_index_inputs)
+            ch_genome_star_index = channel.topic('extracted_dir')
+                .filter { meta, _dir -> meta.topic_key == params.ref_data_genome_star_index }
+                .map { _meta, dir -> dir }
+
+        } else {
+
+            ch_genome_star_index = channel.fromPath(params.ref_data_genome_star_index)
+
+        }
+    }
+
+    //
     // Set HMF reference data, unpack if required
     //
     ch_hmf_data = channel.empty()
@@ -287,6 +318,7 @@ workflow PREPARE_REFERENCE {
         WRITE_FAI_RNA(ch_genome_fai_rna)
         WRITE_DICT_RNA(ch_genome_dict_rna)
         WRITE_BWAMEM2_INDEX_RNA(ch_genome_bwamem2_index_rna)
+        WRITE_STAR_INDEX(ch_genome_star_index)
 
         WRITE_HMF_DATA(ch_hmf_data.map { f -> getDataBaseDirectory(f) })
         WRITE_PANEL_DATA(ch_panel_data.map { f -> getDataBaseDirectory(f) })
@@ -308,6 +340,7 @@ workflow PREPARE_REFERENCE {
     genome_fai_rna           = ch_genome_fai_rna.first()           // path: genome_fai_rna
     genome_dict_rna          = ch_genome_dict_rna.first()          // path: genome_dict_rna
     genome_bwamem2_index_rna = ch_genome_bwamem2_index_rna.first() // path: genome_bwa-mem2_index_rna
+    genome_star_index        = ch_genome_star_index.first()        // path: genome_star_index
 
     genome_version           = ch_genome_version                   // val:  genome_version
 

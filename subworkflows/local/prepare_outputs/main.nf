@@ -15,6 +15,7 @@ workflow PREPARE_OUTPUTS_WGTS {
             channel.topic('cobalt_dir').flatMap { meta, d ->                   return get_dir_filepaths(meta, d) },
             channel.topic('cuppa_dir').flatMap { meta, d ->                    return get_dir_filepaths(meta, d) },
             channel.topic('esvee_dir').flatMap { meta, d ->                    return get_dir_filepaths(meta, d) },
+            channel.topic('gatk4_markduplicates_dir').flatMap { meta, d ->     return get_dir_filepaths(meta, d, "alignments/${meta.sample_id}") },
             channel.topic('isofox_dir').flatMap { meta, d ->                   return get_dir_filepaths(meta, d) },
             channel.topic('lilac_dir').flatMap { meta, d ->                    return get_dir_filepaths(meta, d) },
             channel.topic('linx_germline_annotation_dir').flatMap { meta, d -> return get_dir_filepaths(meta, d, 'linx/germline_annotations') },
@@ -38,6 +39,7 @@ workflow PREPARE_OUTPUTS_WGTS {
             channel.topic('sage_somatic_dir').flatMap { meta, d ->             return get_dir_filepaths(meta, d, 'sage/somatic') },
             channel.topic('sage_visualiser_dir').flatMap { meta, d ->          return get_dir_filepaths(meta, d, 'sage/visualiser') },
             channel.topic('sigs_dir').flatMap { meta, d ->                     return get_dir_filepaths(meta, d) },
+            channel.topic('star_align_qc_log').map { meta, f ->                return ["${meta.key}/star/${meta.sample_id}.${f.name}", f] },
             channel.topic('teal_prep_normal_bam').flatMap { meta, fps ->       return fps.collect { d -> ["${meta.key}/teal/${d.name}", d] } },
             channel.topic('teal_prep_tumor_bam').flatMap { meta, fps ->        return fps.collect { d -> ["${meta.key}/teal/${d.name}", d] } },
             channel.topic('teal_tsvs').flatMap { meta, e ->                    def fps = e instanceof List ? e : [e]; fps.collect { d -> ["${meta.key}/teal/${d.name}", d] } },
@@ -65,6 +67,7 @@ workflow PREPARE_OUTPUTS_TARGETED {
             channel.topic('cider_results').flatMap { meta, fps ->              return fps.collect { d -> ["${meta.key}/cider/${d.name}", d] } },
             channel.topic('cobalt_dir').flatMap { meta, d ->                   return get_dir_filepaths(meta, d) },
             channel.topic('esvee_dir').flatMap { meta, d ->                    return get_dir_filepaths(meta, d) },
+            channel.topic('gatk4_markduplicates_dir').flatMap { meta, d ->     return get_dir_filepaths(meta, d, "alignments/${meta.sample_id}") },
             channel.topic('isofox_dir').flatMap { meta, d ->                   return get_dir_filepaths(meta, d) },
             channel.topic('lilac_dir').flatMap { meta, d ->                    return get_dir_filepaths(meta, d) },
             channel.topic('linx_germline_annotation_dir').flatMap { meta, d -> return get_dir_filepaths(meta, d, 'linx/germline_annotations') },
@@ -85,6 +88,7 @@ workflow PREPARE_OUTPUTS_TARGETED {
             channel.topic('sage_somatic_dir').flatMap { meta, d ->             return get_dir_filepaths(meta, d, 'sage/somatic') },
             channel.topic('sage_visualiser_dir').flatMap { meta, d ->          return get_dir_filepaths(meta, d, 'sage/visualiser') },
             channel.topic('sigs_dir').flatMap { meta, d ->                     return get_dir_filepaths(meta, d) },
+            channel.topic('star_align_qc_log').map { meta, f ->                return ["${meta.key}/star/${meta.sample_id}.${f.name}", f] },
 
             channel.topic('write_reference_data').map { d -> return ["reference_data/${workflow.manifest.version}/", d] },
 
@@ -124,10 +128,12 @@ workflow PREPARE_OUTPUTS_PANEL_RESOURCE_CREATION {
         .mix(
             channel.topic('amber_dir').flatMap { meta, d ->               return get_dir_filepaths(meta, d) },
             channel.topic('cobalt_dir').flatMap { meta, d ->              return get_dir_filepaths(meta, d) },
+            channel.topic('gatk4_markduplicates_dir').flatMap { meta, d -> return get_dir_filepaths(meta, d, "alignments/${meta.sample_id}") },
             channel.topic('isofox_dir').flatMap { meta, d ->              return get_dir_filepaths(meta, d) },
             channel.topic('redux_dir').flatMap { meta, d ->               return get_dir_filepaths(meta, d, "alignments/${meta.sample_id}") },
             channel.topic('sage_germline_dir').flatMap { meta, d ->       return get_dir_filepaths(meta, d, 'sage/germline') },
             channel.topic('sage_somatic_dir').flatMap { meta, d ->        return get_dir_filepaths(meta, d, 'sage/somatic') },
+            channel.topic('star_align_qc_log').map { meta, f ->           return ["${meta.key}/star/${meta.sample_id}.${f.name}", f] },
 
             channel.topic('cobalt_normalisation_tsv').map { d ->          return ["panel_resources/${d.name}", d] },
             channel.topic('isofox_normalisation_csv').map { d ->          return ["panel_resources/${d.name}", d] },

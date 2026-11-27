@@ -260,6 +260,10 @@ Currently only gzip compressed, non-interleaved paired-end FASTQ files are suppo
 
 :::
 
+RNA FASTQs are aligned with STAR by default (`--rna_aligner star`, using the STAR index `--ref_data_genome_star_index`).
+`--rna_aligner bwa-mem3` aligns them with bwa-mem3 and TARS instead, which needs `--ref_data_genome_fasta_rna`,
+`--ref_data_genome_bwamem2_index_rna` and RNA resource files that are not yet published.
+
 #### BAM
 
 To run from BAM, specify `bam` in the `filetype` field:

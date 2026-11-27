@@ -10,6 +10,10 @@ class Constants {
 
     static List PANELS_DEFINED = ['tso500']
 
+    // NOTE(fork): RNA aligners selectable with --rna_aligner; 'star' is nf-core/oncoanalyser dev's route, 'bwa-mem3'
+    // aligns to the genome with transcript contigs appended and lifts the alignments back with TARS
+    static List RNA_ALIGNERS = ['star', 'bwa-mem3']
+
 
     static String HMF_DATA_37_PATH = 'hartwig/pipeline_resources/hmf_pipeline_resources.37_v3.0.0--8.tar.gz'
     static String HMF_DATA_38_PATH = 'hartwig/pipeline_resources/hmf_pipeline_resources.38_v3.0.0--8.tar.gz'
@@ -60,6 +64,7 @@ class Constants {
         IMG,
         PANEL,
         RNA_ALIGNMENT,
+        STAR_INDEX,
     }
 
     static enum Process {

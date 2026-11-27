@@ -2,12 +2,13 @@
 
 This fork of nf-core/oncoanalyser (branch `rust-ports`) runs the pipeline with:
 
-- **bwa-mem3** for read alignment. The branch starts from upstream's `bwa-mem3` branch (Hartwig's
-  development line for oncoanalyser 3.1), which already replaces BWA-MEM2 with bwa-mem3. Upstream runs
-  it with `--compat=bwa-mem2`, which writes the same records as BWA-MEM2. This fork runs bwa-mem3's own
-  mode by default (`--bwamem3_compat none`; `bwa-mem2` gives upstream's records), which bwa-mem3's authors
-  recommend for new pipelines: on a whole-genome lane it gave the same alignment as compat mode in every
-  record, in the same time, and adds the `MQ` (mate mapping quality) and `HN` tags (Alignment, below).
+- **bwa-mem3** for DNA read alignment (RNA: STAR by default, see "RNA alignment" below). The branch
+  starts from upstream's `bwa-mem3` branch (Hartwig's development line for oncoanalyser 3.1), which
+  already replaces BWA-MEM2 with bwa-mem3. Upstream runs it with `--compat=bwa-mem2`, which writes the
+  same records as BWA-MEM2. This fork runs bwa-mem3's own mode by default (`--bwamem3_compat none`;
+  `bwa-mem2` gives upstream's records), which bwa-mem3's authors recommend for new pipelines: on a
+  whole-genome lane it gave the same alignment as compat mode in every record, in the same time, and
+  adds the `MQ` (mate mapping quality) and `HN` tags (Alignment, below).
 - **No fastp.** fastp only split FASTQ files into chunks for parallel alignment (or extracted UMIs);
   it changed no reads. `max_fastq_records` defaults to `-1`, so FASTQs are aligned whole and fastp
   does not run unless UMIs are enabled.
@@ -68,6 +69,28 @@ BamTools, TEAL and LILAC 4 GB, CIDER 8 GB (for the pages of the BWA index image 
 PEACH, CHORD and qsee 1 GB, NEO and CUPPA 2 GB, ESVEE 24 GB,
 each doubled on retry), since the ports need a few GB where the Java tools are given 24 to 72 GB. More
 samples then fit on one machine at once.
+
+## RNA alignment: STAR (default) or bwa-mem3 + TARS
+
+The RNA route of upstream's `bwa-mem3` branch aligns RNA with bwa-mem3 to the genome with transcript
+contigs appended, lifts the alignments back to genome coordinates with TARS and runs REDUX on them. It
+needs reference data Hartwig has not published: that genome and its bwa-mem2 index
+(`--ref_data_genome_fasta_rna`, `--ref_data_genome_bwamem2_index_rna`) and the resource files
+`contigs_mapping_rna` and `unmap_regions_rna`. So RNA FASTQ input could not run. `--rna_aligner`
+chooses the route:
+
+| `--rna_aligner` | Steps | Needs |
+|---|---|---|
+| `star` (default) | STAR, samtools sort, Picard MarkDuplicates, as nf-core/oncoanalyser's `dev` branch does; REDUX does not run on RNA | `--ref_data_genome_star_index`, a folder or `.tar.gz`; set for `GRCh37_hmf` and `GRCh38_hmf` to Hartwig's published STAR 2.7.3a indexes. The pipeline does not build one |
+| `bwa-mem3` | bwa-mem3, TARS, REDUX (the route before this option) | the RNA reference data above |
+
+With `star`, the MarkDuplicates folder (`<sample>.md.bam`, `.md.bam.bai`, `.md.metrics`) takes the place of the RNA
+REDUX folder: Isofox, BamTools, SAGE append, LILAC, CIDER and NEO read `<sample>.md.bam`. It is published in
+`<group>/alignments/<sample>/` (left out with `--publish_alignments false`, as the REDUX BAMs are), and STAR's
+`Log.final.out` in `<group>/star/<sample>.Log.final.out`. STAR aligns all lanes of a sample in one task, so
+`max_fastq_records` does not split RNA FASTQs. STAR asks for `process_high` (12 CPUs, 64 GB), samtools sort and
+MarkDuplicates for `process_medium` (6 CPUs, 36 GB). A later run cannot start from the published `md.bam` (the
+samplesheet's REDUX inputs need REDUX's TSVs), so give RNA as FASTQ.
 
 ## Resources
 
@@ -605,7 +628,8 @@ nextflow run <path to this repo> -profile test_stub,rust_ports -stub \
     --input <path to this repo>/tests/rust_ports/fastq.stub.csv --outdir out
 ```
 
-It runs bwa-mem3 for the three samples, no fastp, and every later step.
+It runs bwa-mem3 for the two DNA samples, STAR, samtools sort and MarkDuplicates for the RNA sample (with
+`--rna_aligner bwa-mem3`: bwa-mem3, TARS and REDUX), no fastp, and every later step.
 
 To check that `--rust_ports_bin` takes these steps out of their containers, run REDUX, SAGE and ESVEE
 alone from BAM input under the `docker` profile; with the Docker daemon stopped they still complete,

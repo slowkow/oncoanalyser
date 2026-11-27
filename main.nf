@@ -37,6 +37,7 @@ params.ref_data_genome_fasta_rna         = getGenomeAttribute('fasta_rna')
 params.ref_data_genome_fai_rna           = getGenomeAttribute('fai_rna')
 params.ref_data_genome_dict_rna          = getGenomeAttribute('dict_rna')
 params.ref_data_genome_bwamem2_index_rna = getGenomeAttribute('bwamem2_index_rna')
+params.ref_data_genome_star_index        = getGenomeAttribute('star_index')
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

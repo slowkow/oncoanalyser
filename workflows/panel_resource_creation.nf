@@ -131,7 +131,9 @@ workflow PANEL_RESOURCE_CREATION {
         ref_data.genome_bwamem2_index_rna,
         hmf_data.contigs_mapping_rna,
         hmf_data.unmap_regions_rna,
+        ref_data.genome_star_index,
         params.max_fastq_records,
+        params.rna_aligner,
     )
 
     // channel: [ meta, [aln, ...], [idx, ...] ]
@@ -140,6 +142,9 @@ workflow PANEL_RESOURCE_CREATION {
 
     // channel: [ meta, aln, idx ]
     ch_align_rna_tumor_out = READ_ALIGNMENT_RNA.out.rna
+
+    // channel: [ meta, markdups_dir ]
+    ch_align_rna_dir_out = READ_ALIGNMENT_RNA.out.rna_dir
 
     //
     // SUBWORKFLOW: Run REDUX for DNA alignments
@@ -168,6 +173,17 @@ workflow PANEL_RESOURCE_CREATION {
     ch_redux_tumor_out = REDUX_PROCESSING.out.tumor_dir
     ch_redux_rna_out = REDUX_PROCESSING.out.rna_dir
     ch_redux_normal_out = REDUX_PROCESSING.out.normal_dir
+
+    //
+    // STEP: With STAR (--rna_aligner star), use the MarkDuplicates directory as the RNA REDUX directory
+    //
+    // NOTE(fork): RNA aligned with STAR is not processed by REDUX; the MarkDuplicates directory, holding
+    // <sample_id>.md.bam (see Utils.getReduxDirAlignment), takes the place of the RNA REDUX directory for all later steps
+    // channel: [ meta, redux_dir ]
+    if (params.rna_aligner == 'star') {
+        ch_redux_rna_out = WorkflowOncoanalyser.groupByMeta(ch_redux_rna_out, ch_align_rna_dir_out)
+            .map { meta, redux_dir, markdups_dir -> [meta, markdups_dir ?: redux_dir] }
+    }
 
     //
     // MODULE: Run Isofox to analyse RNA data

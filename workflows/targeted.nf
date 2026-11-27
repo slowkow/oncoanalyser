@@ -95,6 +95,8 @@ workflow TARGETED {
     ch_align_dna_normal_out = channel.empty()
     ch_align_dna_donor_out = channel.empty()
     ch_align_rna_tumor_out = channel.empty()
+    // channel: [ meta, markdups_dir ]
+    ch_align_rna_dir_out = channel.empty()
 
     if (run_config.stages.alignment) {
 
@@ -153,7 +155,9 @@ workflow TARGETED {
             ref_data.genome_bwamem2_index_rna,
             hmf_data.contigs_mapping_rna,
             hmf_data.unmap_regions_rna,
+            ref_data.genome_star_index,
             params.max_fastq_records,
+            params.rna_aligner,
         )
 
         ch_align_dna_tumor_out = ch_align_dna_tumor_out.mix(READ_ALIGNMENT_DNA.out.tumor)
@@ -161,6 +165,7 @@ workflow TARGETED {
         ch_align_dna_donor_out = ch_align_dna_donor_out.mix(READ_ALIGNMENT_DNA.out.donor)
 
         ch_align_rna_tumor_out = ch_align_rna_tumor_out.mix(READ_ALIGNMENT_RNA.out.rna)
+        ch_align_rna_dir_out = ch_align_rna_dir_out.mix(READ_ALIGNMENT_RNA.out.rna_dir)
 
     } else {
 
@@ -169,6 +174,7 @@ workflow TARGETED {
         ch_align_dna_donor_out = ch_inputs.map { meta -> [meta, [], []] }
 
         ch_align_rna_tumor_out = ch_inputs.map { meta -> [meta, [], []] }
+        ch_align_rna_dir_out = ch_inputs.map { meta -> [meta, []] }
 
     }
 
@@ -214,6 +220,17 @@ workflow TARGETED {
         ch_redux_donor_out = ch_inputs.map { meta -> [meta, []] }
         ch_redux_rna_out = ch_inputs.map { meta -> [meta, []] }
 
+    }
+
+    //
+    // STEP: With STAR (--rna_aligner star), use the MarkDuplicates directory as the RNA REDUX directory
+    //
+    // NOTE(fork): RNA aligned with STAR is not processed by REDUX; the MarkDuplicates directory, holding
+    // <sample_id>.md.bam (see Utils.getReduxDirAlignment), takes the place of the RNA REDUX directory for all later steps
+    // channel: [ meta, redux_dir ]
+    if (params.rna_aligner == 'star') {
+        ch_redux_rna_out = WorkflowOncoanalyser.groupByMeta(ch_redux_rna_out, ch_align_rna_dir_out)
+            .map { meta, redux_dir, markdups_dir -> [meta, markdups_dir ?: redux_dir] }
     }
 
     //
