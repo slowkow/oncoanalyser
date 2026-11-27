@@ -162,7 +162,8 @@ workflow {
 
 output {
     results {
-        path { filepath, file -> file >> filepath }
+        // publish_alignments false (this fork): leave out alignments/, the REDUX BAMs a rerun takes from the cache
+        path { filepath, file -> if( params.publish_alignments || !filepath.toString().contains('/alignments/') ) file >> filepath }
     }
 }
 

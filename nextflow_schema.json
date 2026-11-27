@@ -250,6 +250,12 @@
                     "description": "Folder on the host with the Rust ports and their sage, redux, esvee, amber and cobalt commands. When set, these steps run on the host without a container, while the other steps keep theirs.",
                     "fa_icon": "fas fa-folder-open"
                 },
+                "publish_alignments": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Publish REDUX's BAMs and their side files (alignments/). Set to false for a rerun whose REDUX tasks come from the -resume cache, so the BAMs are not copied to its output folder again.",
+                    "fa_icon": "fas fa-file-export"
+                },
                 "rust_java_compat": {
                     "type": "boolean",
                     "description": "Make the Rust ports reproduce the Java tools' output exactly, including the faults they correct by default.",

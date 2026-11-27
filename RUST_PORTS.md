@@ -39,6 +39,7 @@ nextflow run slowkow/oncoanalyser -r rust-ports \
 | `--rust_java_compat` | `false` | reproduce the Java tools' output exactly, including the faults the ports correct by default |
 | `--rust_low_base_qual_threshold` | not set (26) | SAGE and ESVEE: bases at or below this quality are low quality |
 | `--rust_high_base_qual_threshold` | not set (30) | SAGE and ESVEE: Illumina bases at or above this quality are high quality |
+| `--publish_alignments` | `true` | `false` leaves REDUX's BAMs and side files (`alignments/`) out of the output folder: for a rerun whose REDUX tasks come from the `-resume` cache (the pipeline publishes through its `output` block, so a process `publishDir` setting does not stop it) |
 
 Give `--rust_ports_bin` and `--rust_java_compat` on the command line or in a `-params-file`: they are
 read while the configuration is loaded, so a value set in a `-c` config file is not seen.
