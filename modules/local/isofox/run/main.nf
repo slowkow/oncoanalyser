@@ -20,6 +20,7 @@ process ISOFOX {
     path gene_distribution
     path alt_sj_distribution
     path fusion_cohort
+    path excluded_regions
     path exp_counts
     path exp_gc_ratios
     path tpm_norm
@@ -45,6 +46,7 @@ process ISOFOX {
     def exp_gc_ratios_arg = exp_gc_ratios ? "-exp_gc_ratios_file ${exp_gc_ratios}" : ''
 
     def fusion_cohort_arg = fusion_cohort ? "-fusion_cohort_file ${fusion_cohort}" : ''
+    def excluded_regions_arg = excluded_regions ? "-excluded_regions ${excluded_regions}" : ''
 
     def tpm_norm_arg = tpm_norm ? "-panel_tpm_norm_file ${tpm_norm}" : ''
 
@@ -66,6 +68,7 @@ process ISOFOX {
         -gene_distribution_file ${gene_distribution} \\
         -alt_sj_cohort_file ${alt_sj_distribution} \\
         ${fusion_cohort_arg} \\
+        ${excluded_regions_arg} \\
         ${exp_counts_arg} \\
         ${exp_gc_ratios_arg} \\
         ${tpm_norm_arg} \\
@@ -75,7 +78,7 @@ process ISOFOX {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        isofox: \$(isofox -version | sed -n '/^Isofox version / { s/^.* //p }')
+        isofox: \$(isofox ${args} -version | sed -n '/^Isofox version / { s/^.* //p }')
         java: \$(java --version | sed -n '/^openjdk/ { s/^.*openjdk //; s/ .*//p }')
     END_VERSIONS
     """

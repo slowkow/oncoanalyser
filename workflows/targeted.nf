@@ -286,6 +286,7 @@ workflow TARGETED {
             hmf_data.isofox_gene_distribution,
             hmf_data.isofox_alt_sj_distribution,
             hmf_data.isofox_fusion_cohort,
+            params.rna_aligner == 'star' ? hmf_data.isofox_excluded_regions : [],  // isofox_excluded_regions (ISOFOX 2.0)
             isofox_counts,
             isofox_gc_ratios,
             isofox_tpm_norm,

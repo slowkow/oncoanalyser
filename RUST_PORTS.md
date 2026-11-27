@@ -32,8 +32,8 @@ nextflow run slowkow/oncoanalyser -r rust-ports \
 
 | Profile | Effect |
 |---|---|
-| `rust_ports` | SAGE, REDUX, ESVEE, AMBER, COBALT, BamTools, TEAL, LILAC, CIDER, PAVE, PURPLE (with its plots), LINX (LINX_SOMATIC, LINX_GERMLINE, LINX_VISUALISER), SIGS, Virus Interpreter, PEACH, CHORD, NEO (NEO_FINDER, NEO_SCORER), CUPPA, qsee and ORANGE all run as Rust ports |
-| `rust_sage`, `rust_redux`, `rust_esvee`, `rust_amber`, `rust_cobalt`, `rust_bamtools`, `rust_teal`, `rust_lilac`, `rust_cider`, `rust_pave`, `rust_purple`, `rust_linx`, `rust_sigs`, `rust_virusinterpreter`, `rust_peach`, `rust_chord`, `rust_neo`, `rust_cuppa`, `rust_qsee`, `rust_orange` | one tool as a Rust port, the others in Java; combine as needed |
+| `rust_ports` | SAGE, REDUX, ESVEE, AMBER, COBALT, BamTools, TEAL, LILAC, CIDER, PAVE, PURPLE (with its plots), LINX (LINX_SOMATIC, LINX_GERMLINE, LINX_VISUALISER), SIGS, Virus Interpreter, PEACH, CHORD, NEO (NEO_FINDER, NEO_SCORER), CUPPA, qsee, ORANGE and ISOFOX (ISOFOX_QUANTIFICATION, NEO_ANNOTATE_FUSIONS) all run as Rust ports |
+| `rust_sage`, `rust_redux`, `rust_esvee`, `rust_amber`, `rust_cobalt`, `rust_bamtools`, `rust_teal`, `rust_lilac`, `rust_cider`, `rust_pave`, `rust_purple`, `rust_linx`, `rust_sigs`, `rust_virusinterpreter`, `rust_peach`, `rust_chord`, `rust_neo`, `rust_cuppa`, `rust_qsee`, `rust_orange`, `rust_isofox` | one tool as a Rust port, the others in Java; combine as needed |
 
 | Parameter | Default | Meaning |
 |---|---|---|
@@ -100,8 +100,14 @@ used 2.1-beta.5 on STAR, before this was found; rerun with 2.0.1 from the cache 
 same tumor RNA gave about three times the fragments (2.1 had left out every duplicate, two thirds of this library)
 and 60% more passing fusions. ISOFOX 2.0.1 took 40 minutes and 43 GB at 16 threads.
 
-The ISOFOX port (`isofox-rs`, profile `rust_isofox`, not in `rust_ports`) follows ISOFOX 2.1, so it is for the
-`bwa-mem3` route; ISOFOX 2.0's behaviour on STAR BAMs is not ported yet.
+With `star` the steps also take ISOFOX 2.0's command lines, as upstream's: ISOFOX_QUANTIFICATION gets
+`-excluded_regions` (`rna/rna_excluded_regions.<ver>.tsv`), and NEO_ANNOTATE_FUSIONS runs with `-sample <DNA sample>`
+only (2.0 has no `-tumor` and reads NEO's file by `-sample`), its output then renamed to the RNA sample's, which NEO's
+scorer reads.
+
+The ISOFOX port (`isofox-rs`, profiles `rust_isofox` and `rust_ports`) reproduces both versions: the profile passes
+`-isofox_version 2.0.1` with `star` and `-isofox_version 2.1` with `bwa-mem3`. Each mode was byte-identical to its jar
+on a tumor RNA slice and synthetic cases; on the slice 12-19 s and 1.6-1.9 GB against 150-300 s and 6.1-6.2 GB.
 
 ## Resources
 
