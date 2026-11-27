@@ -46,9 +46,9 @@ starts, and Nextflow then warns once at start-up, before the pipeline's paramete
 `Access to undefined parameter rust_ports_container`. That warning is harmless.
 
 By default the ports correct the faults found in the Java code (each is listed with an id in the
-port's `REPORT.md`). `--rust_java_compat true` sets `SAGE_JAVA_COMPAT`, `REDUX_JAVA_COMPAT`,
-`ESVEE_JAVA_COMPAT`, `AMBER_JAVA_COMPAT` and `COBALT_JAVA_COMPAT` in the task environment, which makes
-each port behave as Java does.
+port's `REPORT.md`). `--rust_java_compat true` adds `-java_compat` to the command line of each ported
+step, which makes each port behave as Java does. Until 2026-11-27 it set `<TOOL>_JAVA_COMPAT` through
+Nextflow's `env` scope instead, which Google Batch does not pass to tasks, so on Batch it had no effect.
 
 The two base-quality parameters are options of the ports, not of the Java tools, so they apply only to
 the steps that run as ports. They are for data whose base qualities were rewritten by recalibration and
