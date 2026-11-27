@@ -244,7 +244,7 @@
             "title": "Rust ports of hmftools",
             "type": "object",
             "fa_icon": "fas fa-bolt",
-            "description": "Options for the profiles rust_ports, rust_sage, rust_redux, rust_esvee, rust_amber, rust_cobalt, rust_bamtools, rust_teal, rust_lilac, rust_cider, rust_pave, rust_linx, rust_sigs, rust_virusinterpreter, rust_peach, rust_chord, rust_neo, rust_cuppa, rust_qsee, rust_orange and rust_purple, which run the Rust ports of SAGE, REDUX, ESVEE, AMBER, COBALT, the BamTools metrics, TEAL, LILAC, CIDER, PAVE, LINX (annotation), SIGS, Virus Interpreter, PEACH, CHORD, NEO, CUPPA, qsee, ORANGE (JSON only, no PDF) and PURPLE (no plots, so ORANGE is skipped; not in rust_ports) in place of the Java tools.",
+            "description": "Options for the profiles rust_ports, rust_sage, rust_redux, rust_esvee, rust_amber, rust_cobalt, rust_bamtools, rust_teal, rust_lilac, rust_cider, rust_pave, rust_linx, rust_sigs, rust_virusinterpreter, rust_peach, rust_chord, rust_neo, rust_cuppa, rust_qsee, rust_orange and rust_purple, which run the Rust ports of SAGE, REDUX, ESVEE, AMBER, COBALT, the BamTools metrics, TEAL, LILAC, CIDER, PAVE, LINX (annotation), SIGS, Virus Interpreter, PEACH, CHORD, NEO, CUPPA, qsee, ORANGE (JSON only, no PDF) and PURPLE (with its plots drawn natively) in place of the Java tools.",
             "properties": {
                 "rust_ports_container": {
                     "type": "string",

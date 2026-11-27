@@ -32,9 +32,8 @@ nextflow run slowkow/oncoanalyser -r rust-ports \
 
 | Profile | Effect |
 |---|---|
-| `rust_ports` | SAGE, REDUX, ESVEE, AMBER, COBALT, BamTools, TEAL, LILAC, CIDER, PAVE, LINX (LINX_SOMATIC, LINX_GERMLINE), SIGS, Virus Interpreter, PEACH, CHORD, NEO (NEO_FINDER, NEO_SCORER), CUPPA and qsee all run as Rust ports |
-| `rust_sage`, `rust_redux`, `rust_esvee`, `rust_amber`, `rust_cobalt`, `rust_bamtools`, `rust_teal`, `rust_lilac`, `rust_cider`, `rust_pave`, `rust_linx`, `rust_sigs`, `rust_virusinterpreter`, `rust_peach`, `rust_chord`, `rust_neo`, `rust_cuppa`, `rust_qsee` | one tool as a Rust port, the others in Java; combine as needed |
-| `rust_purple` | PURPLE as a Rust port. Not part of `rust_ports`: purple-rs writes every data file but no plots (Java draws them with R and Circos), and oncoanalyser skips ORANGE when PURPLE's circos plot is missing |
+| `rust_ports` | SAGE, REDUX, ESVEE, AMBER, COBALT, BamTools, TEAL, LILAC, CIDER, PAVE, PURPLE (with its plots), LINX (LINX_SOMATIC, LINX_GERMLINE), SIGS, Virus Interpreter, PEACH, CHORD, NEO (NEO_FINDER, NEO_SCORER), CUPPA, qsee and ORANGE (JSON, no PDF) all run as Rust ports |
+| `rust_sage`, `rust_redux`, `rust_esvee`, `rust_amber`, `rust_cobalt`, `rust_bamtools`, `rust_teal`, `rust_lilac`, `rust_cider`, `rust_pave`, `rust_purple`, `rust_linx`, `rust_sigs`, `rust_virusinterpreter`, `rust_peach`, `rust_chord`, `rust_neo`, `rust_cuppa`, `rust_qsee`, `rust_orange` | one tool as a Rust port, the others in Java; combine as needed |
 
 | Parameter | Default | Meaning |
 |---|---|---|
@@ -219,8 +218,8 @@ same on HG008.
 - SIGS, Virus Interpreter, PEACH, CHORD and NEO have run inside the pipeline on HG008 (sections "SIGS,
   Virus Interpreter, PEACH and CHORD in the pipeline" and "NEO in the pipeline").
 - LINX, PAVE and PURPLE have run inside the pipeline on HG008 (sections "LINX in the pipeline" and
-  "PAVE and PURPLE in the pipeline"). PURPLE runs as a port only with `rust_purple`: it draws no plots,
-  and without them oncoanalyser skips ORANGE.
+  "PAVE and PURPLE in the pipeline"). PURPLE draws its plots natively since 2026-11-27 and is part of
+  `rust_ports` (section "PURPLE's plots and ORANGE in the pipeline").
   LINX_VISUALISER keeps the Java image and reads the port's visualiser files.
 - TEAL's prep took 7.5 minutes on Google Batch against Java's 13.8 (HG008), after reading each BAM
   ahead with several handles; before that it was slower than Java (15.5 minutes).
@@ -580,6 +579,24 @@ in Java, for its plots); only ORANGE and MultiQC ran. The JSON is identical to r
 jar of hmftools ca04e6c39d does. Upstream renamed it on 2026-11-23 (f5f660cc9f, which also lets ORANGE read Viridian's
 files); the port is to follow. The LINX plot order matched too (both read Linux's directory order in Java mode). No
 PDF is written. 5.3 s and 42 MB, against 18 s and 419 MB.
+
+### PURPLE's plots and ORANGE in the pipeline
+
+A fourteenth rerun (2026-11-27, hmftools 617f926b53, `-profile rust_ports,rust_purple`) ran PURPLE as the port
+with its 9 plots drawn natively (hmf-plot-rs on BUI's software raster: the 7 R plots and the 2 Circos images, no R,
+Perl or Circos in the image), and ORANGE as the port on them, in Java mode; every step after PURPLE ran again on
+the images of reruns 7-11. $0.14 in tasks.
+- **PURPLE:** the text files are identical to Java's; the VCFs differ only in `##purpleVersion` (4.5 against the
+  image's 4.5-beta.5) and in KT on 94 of 17,254 somatic records (PU1); baf.circos is in genome order (PU2). The
+  plots differ from R's and Circos's in rendering only (see `purple-rs` REPORT.md). 14.7 s and 868 MB, against
+  Java's 43.9 s and 3.7 GB with R and Circos.
+- **ORANGE** ran on the native plots: its JSON is byte-identical to Java ORANGE's (rerun 11, the same inputs);
+  no PDF is written.
+- **Every later step** (LINX, LINX's visualiser, LILAC, TEAL, NEO, CUPPA, CHORD, SIGS, PEACH, Virus Interpreter,
+  qsee, the SAGE visualiser) wrote the same files as with Java PURPLE; only gpgr's LINX HTML report differs.
+
+With that, PURPLE joined `rust_ports`. A thirteenth rerun had checked ORANGE after it followed upstream's
+f5f660cc9f (the virus section `viridian`): its JSON equalled Java's from the same inputs, byte for byte.
 
 ### Alignment: bwa-mem3 mode and the file cache
 
