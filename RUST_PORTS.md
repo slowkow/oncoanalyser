@@ -11,10 +11,12 @@ This fork of nf-core/oncoanalyser (branch `rust-ports`) runs the pipeline with:
 - **No fastp.** fastp only split FASTQ files into chunks for parallel alignment (or extracted UMIs);
   it changed no reads. `max_fastq_records` defaults to `-1`, so FASTQs are aligned whole and fastp
   does not run unless UMIs are enabled.
-- **Rust ports of SAGE, REDUX, ESVEE, AMBER, COBALT, the BamTools metrics, TEAL, LILAC, CIDER, PAVE
-  and LINX** in place of the Java tools, chosen with a profile. The ports live in the hmftools fork
+- **Rust ports of SAGE, REDUX, ESVEE, AMBER, COBALT, the BamTools metrics, TEAL, LILAC, CIDER, PAVE,
+  LINX, SIGS, Virus Interpreter and PEACH** (and PURPLE, see below) in place of the Java tools, chosen with a
+  profile. The ports live in the hmftools fork
   (https://github.com/slowkow/hmftools, branch `rust-ports`): `sage-rs/`, `redux-rs/`, `esvee-rs/`,
-  `amber-rs/`, `cobalt-rs/`, `bam-tools-rs/`, `teal-rs/`, `lilac-rs/`, `cider-rs/`, `pave-rs/`, `purple-rs/`, `linx-rs/`. Each takes the Java
+  `amber-rs/`, `cobalt-rs/`, `bam-tools-rs/`, `teal-rs/`, `lilac-rs/`, `cider-rs/`, `pave-rs/`, `purple-rs/`, `linx-rs/`, `sigs-rs/`, `virus-interpreter-rs/`, `peach-rs/`. Each
+  takes the Java
   tool's options, writes the same files, and on every test input gives Java's output exactly when asked
   to (see below).
 
@@ -29,8 +31,8 @@ nextflow run slowkow/oncoanalyser -r rust-ports \
 
 | Profile | Effect |
 |---|---|
-| `rust_ports` | SAGE, REDUX, ESVEE, AMBER, COBALT, BamTools, TEAL, LILAC, CIDER, PAVE and LINX (LINX_SOMATIC, LINX_GERMLINE) all run as Rust ports |
-| `rust_sage`, `rust_redux`, `rust_esvee`, `rust_amber`, `rust_cobalt`, `rust_bamtools`, `rust_teal`, `rust_lilac`, `rust_cider`, `rust_pave`, `rust_linx` | one tool as a Rust port, the others in Java; combine as needed |
+| `rust_ports` | SAGE, REDUX, ESVEE, AMBER, COBALT, BamTools, TEAL, LILAC, CIDER, PAVE, LINX (LINX_SOMATIC, LINX_GERMLINE), SIGS, Virus Interpreter and PEACH all run as Rust ports |
+| `rust_sage`, `rust_redux`, `rust_esvee`, `rust_amber`, `rust_cobalt`, `rust_bamtools`, `rust_teal`, `rust_lilac`, `rust_cider`, `rust_pave`, `rust_linx`, `rust_sigs`, `rust_virusinterpreter`, `rust_peach` | one tool as a Rust port, the others in Java; combine as needed |
 | `rust_purple` | PURPLE as a Rust port. Not part of `rust_ports`: purple-rs writes every data file but no plots (Java draws them with R and Circos), and oncoanalyser skips ORANGE when PURPLE's circos plot is missing |
 
 | Parameter | Default | Meaning |
@@ -62,7 +64,8 @@ unchanged (so is the `-resume` cache); they can be given anywhere, including a `
 tuned its filters on data with the usual qualities, so calls made with moved bands need checking.
 
 The profiles also lower the memory requested for these steps (SAGE, REDUX, AMBER and COBALT 8 GB,
-BamTools, TEAL and LILAC 4 GB, CIDER 8 GB (for the pages of the BWA index image it maps), PAVE and LINX 2 GB, ESVEE 24 GB,
+BamTools, TEAL and LILAC 4 GB, CIDER 8 GB (for the pages of the BWA index image it maps), PAVE and LINX 2 GB, SIGS, Virus Interpreter
+and PEACH 1 GB, ESVEE 24 GB,
 each doubled on retry), since the ports need a few GB where the Java tools are given 24 to 72 GB. More
 samples then fit on one machine at once.
 
@@ -124,8 +127,9 @@ image instead.
 ## The container
 
 The image holds `sage-rs`, `redux-rs`, `esvee-rs`, `amber-rs`, `cobalt-rs`, `bam-tools-rs`, `teal-rs`,
-`lilac-rs`, `cider-rs`, `pave-rs`, `purple-rs` and `linx-rs`, wrapper commands `sage`, `redux`, `esvee`, `amber`,
-`cobalt`, `bamtools`, `teal`, `lilac`, `cider`, `pave`, `purple` and `linx` that accept the Java tools' command lines (JVM options are dropped, Java main classes become
+`lilac-rs`, `cider-rs`, `pave-rs`, `purple-rs`, `linx-rs`, `sigs-rs`, `virus-interpreter-rs` and `peach-rs`, wrapper
+commands `sage`, `redux`, `esvee`, `amber`, `cobalt`, `bamtools`, `teal`, `lilac`, `cider`, `pave`, `purple`,
+`linx`, `sigs`, `virusinterpreter` and `peach` that accept the Java tools' command lines (JVM options are dropped, Java main classes become
 subcommands), samtools and sambamba (passed to REDUX and ESVEE as `-bamtool`), and `ps`, which
 Nextflow needs to record each task's memory and CPU use. It is built from the hmftools fork, for
 linux/amd64 (the machines of Google Batch and AWS Batch). On Google Cloud, Cloud Build builds it and
@@ -184,6 +188,7 @@ same on HG008.
   the HG008 pair only (section "AMBER, COBALT and BamTools in the pipeline"). TEAL, LILAC and CIDER,
   ported on 2026-11-27, have run inside the pipeline on HG008 too (section "TEAL, LILAC and CIDER in the
   pipeline").
+- SIGS, Virus Interpreter and PEACH, ported on 2026-11-27, have not yet run inside the pipeline as ports.
 - LINX, PAVE and PURPLE have run inside the pipeline on HG008 (sections "LINX in the pipeline" and
   "PAVE and PURPLE in the pipeline"). PURPLE runs as a port only with `rust_purple`: it draws no plots,
   and without them oncoanalyser skips ORANGE.
