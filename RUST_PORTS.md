@@ -11,10 +11,11 @@ This fork of nf-core/oncoanalyser (branch `rust-ports`) runs the pipeline with:
 - **No fastp.** fastp only split FASTQ files into chunks for parallel alignment (or extracted UMIs);
   it changed no reads. `max_fastq_records` defaults to `-1`, so FASTQs are aligned whole and fastp
   does not run unless UMIs are enabled.
-- **Rust ports of SAGE, REDUX and ESVEE** in place of the Java tools, chosen with a profile. The ports
-  live in the hmftools fork (https://github.com/slowkow/hmftools, branch `rust-ports`): `sage-rs/`,
-  `redux-rs/`, `esvee-rs/`. Each takes the Java tool's options, writes the same files, and on every
-  test input gives Java's output exactly when asked to (see below).
+- **Rust ports of SAGE, REDUX, ESVEE, AMBER and COBALT** in place of the Java tools, chosen with a
+  profile. The ports live in the hmftools fork (https://github.com/slowkow/hmftools, branch
+  `rust-ports`): `sage-rs/`, `redux-rs/`, `esvee-rs/`, `amber-rs/`, `cobalt-rs/`. Each takes the Java
+  tool's options, writes the same files, and on every test input gives Java's output exactly when asked
+  to (see below).
 
 ## Running
 
@@ -27,8 +28,8 @@ nextflow run slowkow/oncoanalyser -r rust-ports \
 
 | Profile | Effect |
 |---|---|
-| `rust_ports` | SAGE, REDUX and ESVEE all run as Rust ports |
-| `rust_sage`, `rust_redux`, `rust_esvee` | one tool as a Rust port, the others in Java; combine as needed |
+| `rust_ports` | SAGE, REDUX, ESVEE, AMBER and COBALT all run as Rust ports |
+| `rust_sage`, `rust_redux`, `rust_esvee`, `rust_amber`, `rust_cobalt` | one tool as a Rust port, the others in Java; combine as needed |
 
 | Parameter | Default | Meaning |
 |---|---|---|
@@ -45,8 +46,9 @@ starts, and Nextflow then warns once at start-up, before the pipeline's paramete
 `Access to undefined parameter rust_ports_container`. That warning is harmless.
 
 By default the ports correct the faults found in the Java code (each is listed with an id in the
-port's `REPORT.md`). `--rust_java_compat true` sets `SAGE_JAVA_COMPAT`, `REDUX_JAVA_COMPAT` and
-`ESVEE_JAVA_COMPAT` in the task environment, which makes each port behave as Java does.
+port's `REPORT.md`). `--rust_java_compat true` sets `SAGE_JAVA_COMPAT`, `REDUX_JAVA_COMPAT`,
+`ESVEE_JAVA_COMPAT`, `AMBER_JAVA_COMPAT` and `COBALT_JAVA_COMPAT` in the task environment, which makes
+each port behave as Java does.
 
 The two base-quality parameters are options of the ports, not of the Java tools, so they apply only to
 the steps that run as ports. They are for data whose base qualities were rewritten by recalibration and
@@ -56,8 +58,8 @@ supports few SVs. Each port's README says what the bands do. When neither is set
 unchanged (so is the `-resume` cache); they can be given anywhere, including a `-c` file. Hartwig
 tuned its filters on data with the usual qualities, so calls made with moved bands need checking.
 
-The profiles also lower the memory requested for these steps (SAGE and REDUX 8 GB, ESVEE 24 GB, each
-doubled on retry), since the ports need a few GB where the Java tools are given 36 to 72 GB. More
+The profiles also lower the memory requested for these steps (SAGE, REDUX, AMBER and COBALT 8 GB, ESVEE
+24 GB, each doubled on retry), since the ports need a few GB where the Java tools are given 24 to 72 GB. More
 samples then fit on one machine at once.
 
 ## Resources
@@ -96,7 +98,7 @@ and tasks that failed (exit 137 is usually out of memory).
 ## Without a container
 
 The ports are single programs with no dependencies beyond the operating system, so they do not need
-a container. With `--rust_ports_bin <folder>`, SAGE, REDUX and ESVEE run on the host from that folder,
+a container. With `--rust_ports_bin <folder>`, the ported steps run on the host from that folder,
 while every other step keeps its container (or conda environment). This is the better choice on Apple
 Silicon, where Docker runs the pipeline's x86-64 images under emulation in a virtual machine: the ports
 then run as native arm64 programs. Build the folder from the hmftools fork:
@@ -117,8 +119,8 @@ image instead.
 
 ## The container
 
-The image holds `sage-rs`, `redux-rs` and `esvee-rs`, wrapper commands `sage`, `redux` and `esvee`
-that accept the Java tools' command lines (JVM options are dropped, Java main classes become
+The image holds `sage-rs`, `redux-rs`, `esvee-rs`, `amber-rs` and `cobalt-rs`, wrapper commands
+`sage`, `redux`, `esvee`, `amber` and `cobalt` that accept the Java tools' command lines (JVM options are dropped, Java main classes become
 subcommands), samtools and sambamba (passed to REDUX and ESVEE as `-bamtool`), and `ps`, which
 Nextflow needs to record each task's memory and CPU use. It is built from the hmftools fork, for
 linux/amd64 (the machines of Google Batch and AWS Batch). On Google Cloud, Cloud Build builds it and
@@ -149,17 +151,24 @@ REDUX 2.1 as of hmftools commit a224a2cd8e, and ESVEE 2.1 as of commit ca04e6c39
 Java tools and a run with `rust_ports --rust_java_compat true` are not expected to be identical
 where those versions differ, REDUX in particular.
 
+AMBER, COBALT and BamTools are closer: the branch's images `amber:4.4-beta.1`, `cobalt:3.1-beta.1` and
+`bam-tools:1.7-beta.3` were built from hmftools tags whose sources for these tools (and the hmf-common
+code they use) are the same as at the commit the ports follow, so their Java runs and the ports in
+Java mode should agree.
+
 ## Known gaps
 
-- The modules also record the Java version in `versions.yml` (`java --version`). The image has no
-  Java, so that entry is empty; the step is not affected.
+- The modules also record the Java version in `versions.yml` (`java --version`), and COBALT's the R
+  and R package versions. The image has no Java or R, so those entries are empty; the step is not
+  affected.
 - On macOS (`--rust_ports_bin`), the modules read tool versions with GNU `sed` syntax, which the
   system `sed` rejects, so the versions in `versions.yml` are empty unless GNU sed is first on `PATH`
   (for example Homebrew's `gnu-sed`). The steps themselves are not affected.
 - redux-rs does not draw the base-quality recalibration plot (`-bqr_write_plot`); no later step
   reads it.
-- Run end to end on Google Batch on a 2M-read-pair test and on one 35x whole-genome pair (below); not
-  yet on AWS Batch.
+- Run end to end on Google Batch on a 2M-read-pair test and on two whole-genome pairs (below); not
+  yet on AWS Batch. AMBER and COBALT, ported on 2026-11-26, were checked against Java on whole genomes
+  outside the pipeline and have not yet run inside it.
 
 ## Google Batch
 

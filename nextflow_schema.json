@@ -236,18 +236,18 @@
             "title": "Rust ports of hmftools",
             "type": "object",
             "fa_icon": "fas fa-bolt",
-            "description": "Options for the profiles rust_ports, rust_sage, rust_redux and rust_esvee, which run the Rust ports of SAGE, REDUX and ESVEE in place of the Java tools.",
+            "description": "Options for the profiles rust_ports, rust_sage, rust_redux, rust_esvee, rust_amber and rust_cobalt, which run the Rust ports of SAGE, REDUX, ESVEE, AMBER and COBALT in place of the Java tools.",
             "properties": {
                 "rust_ports_container": {
                     "type": "string",
                     "default": "hmftools-rust:dev",
-                    "description": "Container image with the Rust ports (sage, redux and esvee commands).",
+                    "description": "Container image with the Rust ports (sage, redux, esvee, amber and cobalt commands).",
                     "fa_icon": "fab fa-docker"
                 },
                 "rust_ports_bin": {
                     "type": "string",
                     "format": "directory-path",
-                    "description": "Folder on the host with the Rust ports and their sage, redux and esvee commands. When set, these steps run on the host without a container, while the other steps keep theirs.",
+                    "description": "Folder on the host with the Rust ports and their sage, redux, esvee, amber and cobalt commands. When set, these steps run on the host without a container, while the other steps keep theirs.",
                     "fa_icon": "fas fa-folder-open"
                 },
                 "rust_java_compat": {
