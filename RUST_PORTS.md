@@ -14,7 +14,7 @@ This fork of nf-core/oncoanalyser (branch `rust-ports`) runs the pipeline with:
 - **Rust ports of SAGE, REDUX, ESVEE, AMBER, COBALT, the BamTools metrics, TEAL, LILAC, CIDER, PAVE
   and LINX** in place of the Java tools, chosen with a profile. The ports live in the hmftools fork
   (https://github.com/slowkow/hmftools, branch `rust-ports`): `sage-rs/`, `redux-rs/`, `esvee-rs/`,
-  `amber-rs/`, `cobalt-rs/`, `bam-tools-rs/`, `teal-rs/`, `lilac-rs/`, `cider-rs/`, `pave-rs/`, `linx-rs/`. Each takes the Java
+  `amber-rs/`, `cobalt-rs/`, `bam-tools-rs/`, `teal-rs/`, `lilac-rs/`, `cider-rs/`, `pave-rs/`, `purple-rs/`, `linx-rs/`. Each takes the Java
   tool's options, writes the same files, and on every test input gives Java's output exactly when asked
   to (see below).
 
@@ -31,6 +31,7 @@ nextflow run slowkow/oncoanalyser -r rust-ports \
 |---|---|
 | `rust_ports` | SAGE, REDUX, ESVEE, AMBER, COBALT, BamTools, TEAL, LILAC, CIDER, PAVE and LINX (LINX_SOMATIC, LINX_GERMLINE) all run as Rust ports |
 | `rust_sage`, `rust_redux`, `rust_esvee`, `rust_amber`, `rust_cobalt`, `rust_bamtools`, `rust_teal`, `rust_lilac`, `rust_cider`, `rust_pave`, `rust_linx` | one tool as a Rust port, the others in Java; combine as needed |
+| `rust_purple` | PURPLE as a Rust port. Not part of `rust_ports`: purple-rs writes every data file but no plots (Java draws them with R and Circos), and ORANGE fails without them |
 
 | Parameter | Default | Meaning |
 |---|---|---|
@@ -123,8 +124,8 @@ image instead.
 ## The container
 
 The image holds `sage-rs`, `redux-rs`, `esvee-rs`, `amber-rs`, `cobalt-rs`, `bam-tools-rs`, `teal-rs`,
-`lilac-rs`, `cider-rs`, `pave-rs` and `linx-rs`, wrapper commands `sage`, `redux`, `esvee`, `amber`, `cobalt`,
-`bamtools`, `teal`, `lilac`, `cider`, `pave` and `linx` that accept the Java tools' command lines (JVM options are dropped, Java main classes become
+`lilac-rs`, `cider-rs`, `pave-rs`, `purple-rs` and `linx-rs`, wrapper commands `sage`, `redux`, `esvee`, `amber`,
+`cobalt`, `bamtools`, `teal`, `lilac`, `cider`, `pave`, `purple` and `linx` that accept the Java tools' command lines (JVM options are dropped, Java main classes become
 subcommands), samtools and sambamba (passed to REDUX and ESVEE as `-bamtool`), and `ps`, which
 Nextflow needs to record each task's memory and CPU use. It is built from the hmftools fork, for
 linux/amd64 (the machines of Google Batch and AWS Batch). On Google Cloud, Cloud Build builds it and
@@ -183,8 +184,9 @@ same on HG008.
   the HG008 pair only (section "AMBER, COBALT and BamTools in the pipeline"). TEAL, LILAC and CIDER,
   ported on 2026-11-27, have run inside the pipeline on HG008 too (section "TEAL, LILAC and CIDER in the
   pipeline").
-- PAVE and LINX (LINX_SOMATIC and LINX_GERMLINE), ported on 2026-11-27, have not yet run inside the
-  pipeline.
+- LINX (LINX_SOMATIC and LINX_GERMLINE) has run inside the pipeline on HG008 (section "LINX in the
+  pipeline"). PAVE and PURPLE, ported on 2026-11-27, have not yet. PURPLE runs as a port only with
+  `rust_purple`: it draws no plots, and ORANGE fails without them.
   LINX_VISUALISER keeps the Java image and reads the port's visualiser files.
 - TEAL's prep took 7.5 minutes on Google Batch against Java's 13.8 (HG008), after reading each BAM
   ahead with several handles; before that it was slower than Java (15.5 minutes).
@@ -450,6 +452,29 @@ still takes in file order. A fifth rerun ran TEAL and CIDER from that image, for
   unplaced reads both are then byte-identical to Java.
 - **CIDER:** cider.bam's header now matches Java's; the one extra read and the two columns remain (the
   image's other 1.2 build).
+
+### LINX in the pipeline
+
+A seventh rerun (2026-11-27, hmftools 044933dff1) ran LINX_SOMATIC and LINX_GERMLINE as linx-rs and
+TEAL from the same image, in Java mode, for $0.25. Everything before them came from the cache, PAVE
+and PURPLE as Java.
+- **LINX:** every file is identical to linx-rs run locally on the same inputs, which equals Java with
+  `-XX:hashCode=2`.
+  - Against the first run's Java LINX: 13 of the 20 files are identical. The rest differ only in
+    cluster, chain and breakend ids and in germline row order, which Java takes from identity hashes
+    (LX1); sorted and without those ids, they are identical.
+  - 2.8 and 3.1 s at 164 and 89 MB, against Java's 6 and 7.5 s at 1 GB.
+- **Downstream:**
+  - ORANGE's JSON is unchanged from the previous rerun; it differs from the Java run only in LILAC's
+    allele order.
+  - The LINX visualiser's chr8 plot, the LINXREPORT HTML and ORANGE's PDF show the cluster ids, so
+    they differ.
+- **TEAL:** both telbams are now byte-identical to the Java run's once decompressed. The prep took 6.9
+  minutes at 1.5 GB, against Java's 13.8 minutes at 8.6 GB.
+
+Reruns 3 to 7 had also each copied the REDUX BAMs (151 GB) into their output folders, though they took
+REDUX from the cache: the pipeline publishes through its `output` block, so a process `publishDir`
+setting does not stop it. Since then, `--publish_alignments false` leaves them out.
 
 ### Alignment: bwa-mem3 mode and the file cache
 
