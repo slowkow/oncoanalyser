@@ -181,7 +181,7 @@ same on HG008.
   yet on AWS Batch. AMBER, COBALT and BamTools, ported on 2026-11-26, have run inside the pipeline on
   the HG008 pair only (section "AMBER, COBALT and BamTools in the pipeline"). TEAL, LILAC and CIDER,
   ported on 2026-11-27, have run inside the pipeline on HG008 too (section "TEAL, LILAC and CIDER in the
-  pipeline"); TEAL's whole-genome prep has not yet been compared with Java's on a local pair.
+  pipeline").
 - TEAL's prep took 7.5 minutes on Google Batch against Java's 13.8 (HG008), after reading each BAM
   ahead with several handles; before that it was slower than Java (15.5 minutes).
 
