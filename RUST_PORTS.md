@@ -188,8 +188,8 @@ same on HG008.
   the HG008 pair only (section "AMBER, COBALT and BamTools in the pipeline"). TEAL, LILAC and CIDER,
   ported on 2026-11-27, have run inside the pipeline on HG008 too (section "TEAL, LILAC and CIDER in the
   pipeline").
-- SIGS, Virus Interpreter, PEACH, CHORD and NEO, ported on 2026-11-27, have not yet run inside the pipeline
-  as ports.
+- SIGS, Virus Interpreter, PEACH and CHORD have run inside the pipeline on HG008 (section "SIGS, Virus
+  Interpreter, PEACH and CHORD in the pipeline"). NEO, ported on 2026-11-27, has not yet.
 - LINX, PAVE and PURPLE have run inside the pipeline on HG008 (sections "LINX in the pipeline" and
   "PAVE and PURPLE in the pipeline"). PURPLE runs as a port only with `rust_purple`: it draws no plots,
   and without them oncoanalyser skips ORANGE.
@@ -504,6 +504,23 @@ ports in Java mode, with LINX, for $0.16. Everything before them came from the c
 This rerun was the first with `--publish_alignments false`. Its first pass published nothing: a `>>` inside
 an `if` in the `output` block is not a publish statement. The filter now sits on the published channel
 (fork d248e3d4), and a second pass published the results without the BAMs.
+
+### SIGS, Virus Interpreter, PEACH and CHORD in the pipeline
+
+A ninth rerun (2026-11-27, hmftools a9ca2fafda) ran SIGS, Virus Interpreter, PEACH and CHORD as ports, in
+Java mode, for $0.02 in tasks; everything else came from the cache. Every output of the four is identical to
+the Java run's, and CUPPA and ORANGE, which ran again on them, gave the same outputs as in the previous
+reruns (ORANGE's JSON differs from the Java run only in LILAC's allele order).
+
+| Step | Port | Java |
+|---|---|---|
+| SIGS | 0.6 s, 2.8 MB | 4 s, 266 MB |
+| VIRUSINTERPRETER | 1.6 s, 9.2 MB | 5 s, 598 MB |
+| PEACH | 0.6 s, 2.8 MB | 3 s, 80 MB |
+| CHORD | 7.4 s, 51 MB (mostly staging) | 9 s, 439 MB (with R) |
+
+CHORD's module still asks R and Rscript for their versions in `versions.yml`; in the image those lines stay
+empty and the task succeeds.
 
 ### Alignment: bwa-mem3 mode and the file cache
 
