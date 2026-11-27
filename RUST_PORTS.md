@@ -189,9 +189,8 @@ same on HG008.
   the HG008 pair only (section "AMBER, COBALT and BamTools in the pipeline"). TEAL, LILAC and CIDER,
   ported on 2026-11-27, have run inside the pipeline on HG008 too (section "TEAL, LILAC and CIDER in the
   pipeline").
-- CUPPA and qsee, ported on 2026-11-27, have not yet run inside the pipeline as ports. CUPPA's numbers will
-  differ from the Linux pipeline's pycuppa in the last digits (pycuppa's depend on the machine's BLAS); qsee
-  writes no visual report without R.
+- CUPPA and qsee have run inside the pipeline on HG008 (section "CUPPA and qsee in the pipeline"). CUPPA's
+  numbers differ from the Linux pipeline's pycuppa in the last digits; neither draws its plot without R.
 - SIGS, Virus Interpreter, PEACH, CHORD and NEO have run inside the pipeline on HG008 (sections "SIGS,
   Virus Interpreter, PEACH and CHORD in the pipeline" and "NEO in the pipeline").
 - LINX, PAVE and PURPLE have run inside the pipeline on HG008 (sections "LINX in the pipeline" and
@@ -531,6 +530,22 @@ empty and the task succeeds.
 A tenth rerun (2026-11-27, hmftools 1111f6bc2e) ran NEO_FINDER and NEO_SCORER as ports, in Java mode, for $0.01
 in tasks. All three NEO files are identical to the Java run's. The finder took 4.0 s and 105 MB (Java: 6 s,
 1.0 GB), the scorer 3.1 s and 134 MB (Java: 16 s, 1.3 GB).
+
+### CUPPA and qsee in the pipeline
+
+An eleventh rerun (2026-11-27, hmftools 3f31dc583a) ran CUPPA and qsee as ports, in Java mode, for $0.02 in tasks.
+- **qsee:** the three data files are identical to the Java run's. Without R in the image the report is not drawn.
+  2.6 s and 21 MB, against 38 s and 1.1 GB.
+- **CUPPA:** the features file is identical. The predictions differ from the pipeline's pycuppa (Linux x86-64)
+  only in the last digits (at most 2.4e-13 relative), as pycuppa's own do between machines. No plot is drawn.
+  1.7 s and 21 MB, against 16 s and 494 MB.
+- **ORANGE** ran on them: its JSON carries those last digits of CUPPA's and has no CUPPA or qsee plot; the rest of
+  it is unchanged.
+
+Two image builds before this one failed their checks:
+- with rustc 1.100.0 a release build of cuppa-rs mistyped its test VCF's SNVs, so the image is now pinned to
+  rustc 1.97.1, the version every port was checked with;
+- the qsee wrapper added `-skip_plot` to `qsee -version` too.
 
 ### Alignment: bwa-mem3 mode and the file cache
 
