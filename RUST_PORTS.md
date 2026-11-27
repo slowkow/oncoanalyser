@@ -223,8 +223,8 @@ same on HG008.
   pipeline").
 - CUPPA and qsee have run inside the pipeline on HG008 (section "CUPPA and qsee in the pipeline"). CUPPA's
   numbers differ from the Linux pipeline's pycuppa in the last digits; neither draws its plot without R.
-- ORANGE has run inside the pipeline on HG008 (section "ORANGE in the pipeline"): the JSON only, no PDF; its
-  virus key is `virusInterpreter` where the pipeline's newer image writes `viridian`.
+- ORANGE (JSON and PDF) and LINX's visualiser have run inside the pipeline on HG008 (sections "ORANGE in the
+  pipeline" and "LINX's visualiser and ORANGE's PDF in the pipeline").
 - SIGS, Virus Interpreter, PEACH, CHORD and NEO have run inside the pipeline on HG008 (sections "SIGS,
   Virus Interpreter, PEACH and CHORD in the pipeline" and "NEO in the pipeline").
 - LINX, PAVE and PURPLE have run inside the pipeline on HG008 (sections "LINX in the pipeline" and
@@ -607,6 +607,23 @@ the images of reruns 7-11. $0.14 in tasks.
 
 With that, PURPLE joined `rust_ports`. A thirteenth rerun had checked ORANGE after it followed upstream's
 f5f660cc9f (the virus section `viridian`): its JSON equalled Java's from the same inputs, byte for byte.
+
+### LINX's visualiser and ORANGE's PDF in the pipeline
+
+Two more reruns (2026-11-27) completed the native drawing:
+- **Rerun 15** (hmftools 8b871b1e76): ORANGE with its PDF, in Java mode, on rerun 11's inputs (Java PURPLE and its R
+  and Circos plots). Its PDF equals Java ORANGE's from the same inputs: 8 pages, the same `pdftotext -layout` text,
+  all 1,041 words at the same positions, the same 30 images, no rendered pixel different at 100 dpi; the JSON is
+  byte-identical. 5 s and 43 MB, against 18 s and 419 MB. $0.01.
+- **Rerun 16** (hmftools 3ea53cf99f, `-profile rust_ports,rust_purple`, PURPLE from rerun 14's cache): LINX_VISUALISER
+  as the port, then ORANGE with its PDF, on purple-rs's and linx-rs's native plots. The visualiser wrote the same 49
+  plots (and 8 reportable ones) under the same names as Java's, drawn natively (twice the bytes: anti-aliased edges
+  compress worse); 24 s and 0.9 GB against Java's 5 min and 12 GB. ORANGE's JSON is unchanged, and its PDF has
+  Java's text and layout exactly; only the embedded plots differ, on pages 1, 3, 4 and 8. Every other output is
+  unchanged. $0.02.
+
+With these, an HG008 run under `rust_ports` draws every PURPLE, LINX and ORANGE figure without R, Perl, Circos or
+Java. CUPPA's and qsee's R plots are not drawn yet.
 
 ### Alignment: bwa-mem3 mode and the file cache
 
