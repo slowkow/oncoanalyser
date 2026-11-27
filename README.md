@@ -1,6 +1,6 @@
 > **This fork** (branch `rust-ports`) aligns with bwa-mem3, skips fastp, and can run Rust ports of
-> SAGE, REDUX, ESVEE, AMBER, COBALT, the BamTools metrics, TEAL, LILAC and CIDER in place of the
-> Java tools (`-profile rust_ports`). See
+> SAGE, REDUX, ESVEE, AMBER, COBALT, the BamTools metrics, TEAL, LILAC, CIDER and LINX in place of
+> the Java tools (`-profile rust_ports`). See
 > [RUST_PORTS.md](RUST_PORTS.md).
 
 <h1>
