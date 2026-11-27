@@ -295,7 +295,11 @@ class Utils {
 
                     def generate_tsvs_only = meta_sample.getOrDefault(Constants.InfoField.GENERATE_REDUX_TSVS_ONLY, false)
 
-                    if (! has_redux_tsvs && ! generate_tsvs_only) {
+                    // RNA aligned by the STAR route (--rna_aligner star) is marked by MarkDuplicates, not REDUX, so its folder
+                    // has no REDUX TSVs; nothing reads RNA REDUX TSVs downstream
+                    def is_rna = sample_key[1] == Constants.SequenceType.RNA
+
+                    if (! has_redux_tsvs && ! generate_tsvs_only && ! is_rna) {
 
                         log.error "no REDUX TSVs provided or found for ${meta.group_id} ${sample_id}: ${redux_input}"
                         Nextflow.exit(1)
