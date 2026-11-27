@@ -426,7 +426,7 @@ Against the first run's Java outputs:
   - one more read in cider.bam (31,408 against 31,407) and one more in the IGH counts. The hmftools
     1.2 jar includes that read too, so this is the image's other build.
   - the `@HD VN` line.
-- **Downstream:** ORANGE's JSON differs, as it reads the LILAC and CIDER outputs.
+- **Downstream:** ORANGE's JSON differs only in the order of LILAC's alleles.
 
 The `@HD VN` line: Java REDUX, TEAL and CIDER write `VN:1.6` whatever the input BAM says, because
 htsjdk's header decoder does not keep the input's version. The three ports kept the input's, which is
