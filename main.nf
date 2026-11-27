@@ -157,13 +157,14 @@ workflow {
     )
 
     publish:
+    // publish_alignments false (this fork): leave out alignments/, the REDUX BAMs a rerun takes from the cache
     results = NFCORE_ONCOANALYSER.out.results
+        .filter { filepath, _file -> params.publish_alignments.toString().toBoolean() || !filepath.toString().contains('/alignments/') }
 }
 
 output {
     results {
-        // publish_alignments false (this fork): leave out alignments/, the REDUX BAMs a rerun takes from the cache
-        path { filepath, file -> if( params.publish_alignments || !filepath.toString().contains('/alignments/') ) file >> filepath }
+        path { filepath, file -> file >> filepath }
     }
 }
 
