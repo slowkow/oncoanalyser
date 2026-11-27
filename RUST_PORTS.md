@@ -300,6 +300,46 @@ $3.67.
   of tumor and normal (or of the lanes of one sample) come from runs with prefixes of different
   lengths.
 
+### A second whole-genome pair: GIAB HG008
+
+GIAB HG008 is a public tumor/normal pair: a pancreatic ductal adenocarcinoma cell line, HG008-T, and
+normal duodenal tissue from the same donor, HG008-N-D. Its NYGC Illumina FASTQs were run on 2026-11-26
+with the same profile and settings as the third run above. The image was hmftools aef317426f, which has
+the ports on the shared crate `hmf-common-rs` and gives the same results as ed4c31e8c6.
+
+The tumor has 8 lanes from two flowcells, the normal 4. The lanes are named `<flowcell>_<lane>` in the
+samplesheet, because the tumor's two flowcells reuse lane numbers. BamTools measured a mean coverage of
+71x for the tumor (median 65, 16% duplicates) and 29.5x for the normal (median 30, 11% duplicates). That
+is about twice T0's tumor depth.
+
+Alignment is bwa-mem3 0.15.0 in its own mode, one task per lane on n2-standard-64:
+
+| Step | Time in the task, peak memory | Cost |
+|---|---|---|
+| Alignment, per lane | 11-17 min, 61 GB | |
+| Alignment, all 12 lanes (five 64-vCPU machines at a time) | 53 min, 3.4 VM hours, 98 CPU hours | $11.09 |
+| REDUX, tumor (8 lane BAMs, 1.75 billion reads) | 58 min, 3.3 GB | |
+| REDUX, normal (4 lane BAMs, 0.69 billion reads) | 26 min, 2.2 GB | $1.62 (both) |
+| SAGE somatic | 11.9 min, 2.2 GB | $0.13 |
+| SAGE germline | 1.4 min, 0.8 GB | $0.02 |
+| ESVEE | 7.1 min, 9.5 GB | $0.11 |
+| Every other step (Java tools; BamTools, AMBER, COBALT and TEAL prep 10-13 min each) | | $1.31 |
+| Whole run | 2 h 33 min | $14.28 |
+
+Alignment was 78% of the cost. Everything after it cost $3.19.
+
+The tumor's REDUX was the longest step after alignment. It read 240 GB and wrote 204 GB at 4 of its 16
+CPUs, which is in proportion to T0's tumor (193 and 158 GB in 36 minutes) and bound by I/O.
+
+Every step completed. PURPLE QC passed:
+- purity 1.00, as expected for a cell line, and ploidy 1.46;
+- female by both AMBER and COBALT, and no contamination;
+- 423 copy-number segments, MSS, 3.8 mutations per Mb;
+- 10,839 PASS somatic small variants and 381 PASS somatic structural variant breakends.
+
+The somatic driver catalog has KRAS, TP53, SMAD4, NF1, SUZ12 and ARID1B mutations, as expected for a
+pancreatic adenocarcinoma.
+
 ### Alignment: bwa-mem3 mode and the file cache
 
 One normal lane of the pair (25 GB of FASTQ, about 160 million read pairs) was aligned three more times on
