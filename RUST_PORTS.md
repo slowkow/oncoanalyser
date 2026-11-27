@@ -179,9 +179,11 @@ same on HG008.
   reads it.
 - Run end to end on Google Batch on a 2M-read-pair test and on two whole-genome pairs (below); not
   yet on AWS Batch. AMBER, COBALT and BamTools, ported on 2026-11-26, have run inside the pipeline on
-  the HG008 pair only (section "AMBER, COBALT and BamTools in the pipeline"). TEAL, LILAC and CIDER, ported on
-  2026-11-27, were checked against Java outside the pipeline only; TEAL's whole-genome prep has not yet
-  been compared with Java's.
+  the HG008 pair only (section "AMBER, COBALT and BamTools in the pipeline"). TEAL, LILAC and CIDER,
+  ported on 2026-11-27, have run inside the pipeline on HG008 too (section "TEAL, LILAC and CIDER in the
+  pipeline"); TEAL's whole-genome prep has not yet been compared with Java's on a local pair.
+- On Google Batch, through the bucket mount, TEAL's prep is no faster than Java's (15.5 against 13.8
+  minutes on HG008): the port reads each BAM as one stream, one after the other.
 
 ## Google Batch
 
@@ -400,6 +402,42 @@ unchanged (amber-rs REPORT.md, section 4). A third rerun with that image, in Jav
 at 1035% CPU and 1.6 GB, against 10.1 minutes before and Java's 12.2. Its outputs, and everything after
 AMBER, were again identical to the Java run's, apart from PURPLE's kataegis ids (75 records this time).
 That rerun cost $0.25.
+
+### TEAL, LILAC and CIDER in the pipeline
+
+A fourth rerun of HG008 on 2026-11-27 (image hmftools 6a81b6d5f2, `--rust_java_compat true`) ran TEAL,
+LILAC and CIDER as ports, with everything before them from the cache. It cost $0.35, on the first run's
+machines:
+
+| Step | Java (first run): time, peak memory | Rust, Java mode |
+|---|---|---|
+| TEAL prep | 13.8 min at 1112% CPU, 8.6 GB | 15.5 min at 165% CPU, 1.1 GB |
+| TEAL pipeline | 35 s, 2.3 GB | 7.4 s, 0.4 GB |
+| LILAC | 72 s, 13.4 GB | 9 s, 0.5 GB |
+| CIDER | 37 s, 6.2 GB | 20 s, 0.52 GB |
+
+Against the first run's Java outputs:
+- **TEAL:** tellength and breakend files identical. The telbams have the same records in the same
+  order, and their headers differed only in `@HD VN` (below).
+- **LILAC:** the same rows in all three files, in another gene group order (finding LI1: Java orders
+  the groups by identity hash).
+- **CIDER:**
+  - the two extra columns of the hmftools 1.2 sources (Versions);
+  - one more read in cider.bam (31,408 against 31,407) and one more in the IGH counts. The hmftools
+    1.2 jar includes that read too, so this is the image's other build.
+  - the `@HD VN` line.
+- **Downstream:** ORANGE's JSON differs, as it reads the LILAC and CIDER outputs.
+
+The `@HD VN` line: Java REDUX, TEAL and CIDER write `VN:1.6` whatever the input BAM says, because
+htsjdk's header decoder does not keep the input's version. The three ports kept the input's, which is
+`VN:1.3` from bwa-mem3 (so the REDUX BAMs of the Rust runs above say 1.3, the Java run's 1.6) and 1.5
+in the HG008 BAMs. Fixed in hmftools 5e11a56926; on a `VN:1.5` slice of the HG008 tumor BAM the three
+ports' BAMs are then identical to Java's.
+
+TEAL's prep is I/O bound on Batch at 165% CPU. It reads the tumor and then the normal, each as one
+stream, at about 160 MB/s through gcsfuse, while Java's 15 reader threads read in parallel. Reading the
+two BAMs at once, and several ranged reads ahead within each, would keep the result and should bring it
+near COBALT's 3-4 minutes.
 
 ### Alignment: bwa-mem3 mode and the file cache
 
