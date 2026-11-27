@@ -214,6 +214,8 @@ same on HG008.
   pipeline").
 - CUPPA and qsee have run inside the pipeline on HG008 (section "CUPPA and qsee in the pipeline"). CUPPA's
   numbers differ from the Linux pipeline's pycuppa in the last digits; neither draws its plot without R.
+- ORANGE has run inside the pipeline on HG008 (section "ORANGE in the pipeline"): the JSON only, no PDF; its
+  virus key is `virusInterpreter` where the pipeline's newer image writes `viridian`.
 - SIGS, Virus Interpreter, PEACH, CHORD and NEO have run inside the pipeline on HG008 (sections "SIGS,
   Virus Interpreter, PEACH and CHORD in the pipeline" and "NEO in the pipeline").
 - LINX, PAVE and PURPLE have run inside the pipeline on HG008 (sections "LINX in the pipeline" and
@@ -569,6 +571,15 @@ Two image builds before this one failed their checks:
 - with rustc 1.100.0 a release build of cuppa-rs mistyped its test VCF's SNVs, so the image is now pinned to
   rustc 1.97.1, the version every port was checked with;
 - the qsee wrapper added `-skip_plot` to `qsee -version` too.
+
+### ORANGE in the pipeline
+
+A twelfth rerun (2026-11-27, hmftools 01f01a5f35) ran ORANGE as the port, in Java mode, on rerun 11's inputs (PURPLE
+in Java, for its plots); only ORANGE and MultiQC ran. The JSON is identical to rerun 11's from Hartwig's ORANGE image
+(5.1-beta.1) but for one key: the image names the virus section `viridian`, the port `virusInterpreter`, as the 5.1
+jar of hmftools ca04e6c39d does. Upstream renamed it on 2026-11-23 (f5f660cc9f, which also lets ORANGE read Viridian's
+files); the port is to follow. The LINX plot order matched too (both read Linux's directory order in Java mode). No
+PDF is written. 5.3 s and 42 MB, against 18 s and 419 MB.
 
 ### Alignment: bwa-mem3 mode and the file cache
 
