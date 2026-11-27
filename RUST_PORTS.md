@@ -91,6 +91,16 @@ REDUX folder: Isofox, BamTools, SAGE append, LILAC, CIDER and NEO read `<sample>
 MarkDuplicates for `process_medium` (6 CPUs, 36 GB). A later run cannot start from the published `md.bam` (the
 samplesheet's REDUX inputs need REDUX's TSVs), so give RNA as FASTQ.
 
+ISOFOX follows the route too: with `star` the ISOFOX steps (ISOFOX_QUANTIFICATION, NEO_ANNOTATE_FUSIONS) run upstream's
+ISOFOX 2.0.1 (biocontainers), because ISOFOX 2.1 expects bwa-mem3 + TARS BAMs: on a STAR BAM it drops duplicates
+from every count and finds no multi-mapped reads (it reads bwa's XA tags); Hartwig's ISOFOX README asks for 2.0 or
+earlier with STAR. 2.0.1's files differ from 2.1's in the multi-mapped column name (`LowMapQualFrags`), an extra
+summary column and `retained_intron.csv`; ORANGE, CUPPA and NEO read none of these. A first RNA run (2026-11-27)
+used 2.1-beta.5 on STAR, before this was found.
+
+The ISOFOX port (`isofox-rs`, profile `rust_isofox`, not in `rust_ports`) follows ISOFOX 2.1, so it is for the
+`bwa-mem3` route; ISOFOX 2.0's behaviour on STAR BAMs is not ported yet.
+
 ## Resources
 
 What each step asks the executor for, and what the ports were measured to use on a whole-genome
