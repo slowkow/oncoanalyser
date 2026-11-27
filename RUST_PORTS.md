@@ -385,7 +385,7 @@ first run (n2-standard-16):
 - the dates and random element ids in the LINX, ORANGE and qsee reports;
 - the kataegis cluster ids (`KT`) of 104 records in PURPLE's somatic VCF, a one-to-one renaming of 24
   ids. All of PURPLE's inputs were identical, so PURPLE numbers these clusters nondeterministically
-  (85 records changed between the two reruns).
+  (85 and 75 records changed in the other reruns).
 
 **In corrected mode**, PURPLE's purity, ploidy, QC, copy-number file and driver catalog are the same as
 Java's. 140 lines of its segment file change in the observed-ratio columns (COBALT corrections), and
@@ -396,7 +396,10 @@ of the unplaced unmapped reads, so it counts them as QC-failed and leaves them o
 AMBER used 13-17% of its 16 CPUs. Java AMBER, as the first version of the port, reads each of about
 23,000 regions with its own index query. Through the bucket mount each query becomes a new ranged
 request. From hmftools 5edcca6f64 the port reads runs of regions with one query each, with every output
-unchanged (amber-rs REPORT.md, section 4).
+unchanged (amber-rs REPORT.md, section 4). A third rerun with that image, in Java mode, took 2.8 minutes
+at 1035% CPU and 1.6 GB, against 10.1 minutes before and Java's 12.2. Its outputs, and everything after
+AMBER, were again identical to the Java run's, apart from PURPLE's kataegis ids (75 records this time).
+That rerun cost $0.25.
 
 ### Alignment: bwa-mem3 mode and the file cache
 
