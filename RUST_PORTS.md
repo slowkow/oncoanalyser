@@ -188,8 +188,8 @@ same on HG008.
   the HG008 pair only (section "AMBER, COBALT and BamTools in the pipeline"). TEAL, LILAC and CIDER,
   ported on 2026-11-27, have run inside the pipeline on HG008 too (section "TEAL, LILAC and CIDER in the
   pipeline").
-- SIGS, Virus Interpreter, PEACH and CHORD have run inside the pipeline on HG008 (section "SIGS, Virus
-  Interpreter, PEACH and CHORD in the pipeline"). NEO, ported on 2026-11-27, has not yet.
+- SIGS, Virus Interpreter, PEACH, CHORD and NEO have run inside the pipeline on HG008 (sections "SIGS,
+  Virus Interpreter, PEACH and CHORD in the pipeline" and "NEO in the pipeline").
 - LINX, PAVE and PURPLE have run inside the pipeline on HG008 (sections "LINX in the pipeline" and
   "PAVE and PURPLE in the pipeline"). PURPLE runs as a port only with `rust_purple`: it draws no plots,
   and without them oncoanalyser skips ORANGE.
@@ -521,6 +521,12 @@ reruns (ORANGE's JSON differs from the Java run only in LILAC's allele order).
 
 CHORD's module still asks R and Rscript for their versions in `versions.yml`; in the image those lines stay
 empty and the task succeeds.
+
+### NEO in the pipeline
+
+A tenth rerun (2026-11-27, hmftools 1111f6bc2e) ran NEO_FINDER and NEO_SCORER as ports, in Java mode, for $0.01
+in tasks. All three NEO files are identical to the Java run's. The finder took 4.0 s and 105 MB (Java: 6 s,
+1.0 GB), the scorer 3.1 s and 134 MB (Java: 16 s, 1.3 GB).
 
 ### Alignment: bwa-mem3 mode and the file cache
 
