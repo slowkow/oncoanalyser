@@ -182,8 +182,8 @@ same on HG008.
   the HG008 pair only (section "AMBER, COBALT and BamTools in the pipeline"). TEAL, LILAC and CIDER,
   ported on 2026-11-27, have run inside the pipeline on HG008 too (section "TEAL, LILAC and CIDER in the
   pipeline"); TEAL's whole-genome prep has not yet been compared with Java's on a local pair.
-- On Google Batch, through the bucket mount, TEAL's prep is no faster than Java's (15.5 against 13.8
-  minutes on HG008): the port reads each BAM as one stream, one after the other.
+- TEAL's prep took 7.5 minutes on Google Batch against Java's 13.8 (HG008), after reading each BAM
+  ahead with several handles; before that it was slower than Java (15.5 minutes).
 
 ## Google Batch
 
@@ -434,10 +434,18 @@ htsjdk's header decoder does not keep the input's version. The three ports kept 
 in the HG008 BAMs. Fixed in hmftools 5e11a56926; on a `VN:1.5` slice of the HG008 tumor BAM the three
 ports' BAMs are then identical to Java's.
 
-TEAL's prep is I/O bound on Batch at 165% CPU. It reads the tumor and then the normal, each as one
-stream, at about 160 MB/s through gcsfuse, while Java's 15 reader threads read in parallel. Reading the
-two BAMs at once, and several ranged reads ahead within each, would keep the result and should bring it
-near COBALT's 3-4 minutes.
+TEAL's prep was I/O bound on Batch at 165% CPU. It read the tumor and then the normal, each as one
+stream, at about 160 MB/s through gcsfuse, while Java's 15 reader threads read in parallel.
+
+From hmftools 3bb279d27e, several file handles read each BAM ahead in 32 MB chunks, which the parser
+still takes in file order. A fifth rerun ran TEAL and CIDER from that image, for $0.18:
+- **TEAL prep:** 7.5 minutes at 420% CPU and 1.3 GB, against Java's 13.8 minutes.
+- **TEAL outputs:** the telbams match Java's header and records as SAM text. 11,792 unplaced records still
+  differed in their BAM bin: htsjdk writes 0 for a record without a reference, and the inputs had
+  htslib's 4680. teal-rs and redux-rs write 0 from hmftools 44720f20ef, and on a public test BAM with
+  unplaced reads both are then byte-identical to Java.
+- **CIDER:** cider.bam's header now matches Java's; the one extra read and the two columns remain (the
+  image's other 1.2 build).
 
 ### Alignment: bwa-mem3 mode and the file cache
 
