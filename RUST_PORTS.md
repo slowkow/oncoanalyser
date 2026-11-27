@@ -11,9 +11,10 @@ This fork of nf-core/oncoanalyser (branch `rust-ports`) runs the pipeline with:
 - **No fastp.** fastp only split FASTQ files into chunks for parallel alignment (or extracted UMIs);
   it changed no reads. `max_fastq_records` defaults to `-1`, so FASTQs are aligned whole and fastp
   does not run unless UMIs are enabled.
-- **Rust ports of SAGE, REDUX, ESVEE, AMBER and COBALT** in place of the Java tools, chosen with a
-  profile. The ports live in the hmftools fork (https://github.com/slowkow/hmftools, branch
-  `rust-ports`): `sage-rs/`, `redux-rs/`, `esvee-rs/`, `amber-rs/`, `cobalt-rs/`. Each takes the Java
+- **Rust ports of SAGE, REDUX, ESVEE, AMBER, COBALT and the BamTools metrics** in place of the Java
+  tools, chosen with a profile. The ports live in the hmftools fork (https://github.com/slowkow/hmftools,
+  branch `rust-ports`): `sage-rs/`, `redux-rs/`, `esvee-rs/`, `amber-rs/`, `cobalt-rs/`,
+  `bam-tools-rs/`. Each takes the Java
   tool's options, writes the same files, and on every test input gives Java's output exactly when asked
   to (see below).
 
@@ -28,8 +29,8 @@ nextflow run slowkow/oncoanalyser -r rust-ports \
 
 | Profile | Effect |
 |---|---|
-| `rust_ports` | SAGE, REDUX, ESVEE, AMBER and COBALT all run as Rust ports |
-| `rust_sage`, `rust_redux`, `rust_esvee`, `rust_amber`, `rust_cobalt` | one tool as a Rust port, the others in Java; combine as needed |
+| `rust_ports` | SAGE, REDUX, ESVEE, AMBER, COBALT and BamTools all run as Rust ports |
+| `rust_sage`, `rust_redux`, `rust_esvee`, `rust_amber`, `rust_cobalt`, `rust_bamtools` | one tool as a Rust port, the others in Java; combine as needed |
 
 | Parameter | Default | Meaning |
 |---|---|---|
@@ -58,8 +59,8 @@ supports few SVs. Each port's README says what the bands do. When neither is set
 unchanged (so is the `-resume` cache); they can be given anywhere, including a `-c` file. Hartwig
 tuned its filters on data with the usual qualities, so calls made with moved bands need checking.
 
-The profiles also lower the memory requested for these steps (SAGE, REDUX, AMBER and COBALT 8 GB, ESVEE
-24 GB, each doubled on retry), since the ports need a few GB where the Java tools are given 24 to 72 GB. More
+The profiles also lower the memory requested for these steps (SAGE, REDUX, AMBER and COBALT 8 GB,
+BamTools 4 GB, ESVEE 24 GB, each doubled on retry), since the ports need a few GB where the Java tools are given 24 to 72 GB. More
 samples then fit on one machine at once.
 
 ## Resources
@@ -119,8 +120,8 @@ image instead.
 
 ## The container
 
-The image holds `sage-rs`, `redux-rs`, `esvee-rs`, `amber-rs` and `cobalt-rs`, wrapper commands
-`sage`, `redux`, `esvee`, `amber` and `cobalt` that accept the Java tools' command lines (JVM options are dropped, Java main classes become
+The image holds `sage-rs`, `redux-rs`, `esvee-rs`, `amber-rs`, `cobalt-rs` and `bam-tools-rs`, wrapper
+commands `sage`, `redux`, `esvee`, `amber`, `cobalt` and `bamtools` that accept the Java tools' command lines (JVM options are dropped, Java main classes become
 subcommands), samtools and sambamba (passed to REDUX and ESVEE as `-bamtool`), and `ps`, which
 Nextflow needs to record each task's memory and CPU use. It is built from the hmftools fork, for
 linux/amd64 (the machines of Google Batch and AWS Batch). On Google Cloud, Cloud Build builds it and
@@ -167,8 +168,8 @@ Java mode should agree.
 - redux-rs does not draw the base-quality recalibration plot (`-bqr_write_plot`); no later step
   reads it.
 - Run end to end on Google Batch on a 2M-read-pair test and on two whole-genome pairs (below); not
-  yet on AWS Batch. AMBER and COBALT, ported on 2026-11-26, were checked against Java on whole genomes
-  outside the pipeline and have not yet run inside it.
+  yet on AWS Batch. AMBER, COBALT and BamTools, ported on 2026-11-26, have run inside the pipeline on
+  the HG008 pair only (section "AMBER, COBALT and BamTools in the pipeline").
 
 ## Google Batch
 
@@ -348,6 +349,42 @@ Every step completed. PURPLE QC passed:
 
 The somatic driver catalog has KRAS, TP53, SMAD4, NF1, SUZ12 and ARID1B mutations, as expected for a
 pancreatic adenocarcinoma.
+
+### AMBER, COBALT and BamTools in the pipeline
+
+The HG008 run was resumed twice on 2026-11-27 with AMBER, COBALT and BamTools as Rust ports (image
+hmftools 01257d2b90), into new output folders. Alignment, REDUX, SAGE and ESVEE came from the first
+run's cache, so these three steps and everything after them ran again. The first rerun used the default
+corrected mode, and the second used `--rust_java_compat true`. Both ran on the same machines as the
+first run (n2-standard-16):
+
+| Step | Java (first run): time, peak memory | Rust, corrected | Rust, Java mode |
+|---|---|---|---|
+| BamTools, tumor | 11.5 min, 3.8 GB | 2.7 min, 0.55 GB | 2.9 min, 0.55 GB |
+| BamTools, normal | 4.6 min, 2.8 GB | 1.2 min, 0.53 GB | 1.2 min, 0.54 GB |
+| COBALT | 10.3 min, 5.7 GB | 3.5 min, 0.85 GB | 4.2 min, 0.86 GB |
+| AMBER | 12.2 min, 10.2 GB | 10.7 min, 1.6 GB | 10.1 min, 1.6 GB |
+| The rerun, every step | | $0.49 | $0.50 |
+
+**In Java mode**, the 234 output files are identical to the first run's, apart from:
+- the `amber.version` and `cobalt.version` files: version `4.4` and `3.1`, against the beta images'
+  `4.4-beta.1` and `3.1-beta.1`, and their build dates;
+- BamTools' `partition_stats.tsv`: its timing column and row order;
+- the dates and random element ids in the LINX, ORANGE and qsee reports;
+- the kataegis cluster ids (`KT`) of 104 records in PURPLE's somatic VCF, a one-to-one renaming of 24
+  ids. All of PURPLE's inputs were identical, so PURPLE numbers these clusters nondeterministically
+  (85 records changed between the two reruns).
+
+**In corrected mode**, PURPLE's purity, ploidy, QC, copy-number file and driver catalog are the same as
+Java's. 140 lines of its segment file change in the observed-ratio columns (COBALT corrections), and
+qsee's mapped proportion drops from 0.9967 to 0.98, still a PASS. Java BamTools inverts the QC flag
+of the unplaced unmapped reads, so it counts them as QC-failed and leaves them out of the share
+(finding BT3).
+
+AMBER used 13-17% of its 16 CPUs. Java AMBER, as the first version of the port, reads each of about
+23,000 regions with its own index query. Through the bucket mount each query becomes a new ranged
+request. From hmftools 5edcca6f64 the port reads runs of regions with one query each, with every output
+unchanged (amber-rs REPORT.md, section 4).
 
 ### Alignment: bwa-mem3 mode and the file cache
 
