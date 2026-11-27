@@ -11,10 +11,10 @@ This fork of nf-core/oncoanalyser (branch `rust-ports`) runs the pipeline with:
 - **No fastp.** fastp only split FASTQ files into chunks for parallel alignment (or extracted UMIs);
   it changed no reads. `max_fastq_records` defaults to `-1`, so FASTQs are aligned whole and fastp
   does not run unless UMIs are enabled.
-- **Rust ports of SAGE, REDUX, ESVEE, AMBER, COBALT, the BamTools metrics, TEAL and LILAC** in place
-  of the Java tools, chosen with a profile. The ports live in the hmftools fork
+- **Rust ports of SAGE, REDUX, ESVEE, AMBER, COBALT, the BamTools metrics, TEAL, LILAC and CIDER** in
+  place of the Java tools, chosen with a profile. The ports live in the hmftools fork
   (https://github.com/slowkow/hmftools, branch `rust-ports`): `sage-rs/`, `redux-rs/`, `esvee-rs/`,
-  `amber-rs/`, `cobalt-rs/`, `bam-tools-rs/`, `teal-rs/`, `lilac-rs/`. Each takes the Java
+  `amber-rs/`, `cobalt-rs/`, `bam-tools-rs/`, `teal-rs/`, `lilac-rs/`, `cider-rs/`. Each takes the Java
   tool's options, writes the same files, and on every test input gives Java's output exactly when asked
   to (see below).
 
@@ -29,8 +29,8 @@ nextflow run slowkow/oncoanalyser -r rust-ports \
 
 | Profile | Effect |
 |---|---|
-| `rust_ports` | SAGE, REDUX, ESVEE, AMBER, COBALT, BamTools, TEAL and LILAC all run as Rust ports |
-| `rust_sage`, `rust_redux`, `rust_esvee`, `rust_amber`, `rust_cobalt`, `rust_bamtools`, `rust_teal`, `rust_lilac` | one tool as a Rust port, the others in Java; combine as needed |
+| `rust_ports` | SAGE, REDUX, ESVEE, AMBER, COBALT, BamTools, TEAL, LILAC and CIDER all run as Rust ports |
+| `rust_sage`, `rust_redux`, `rust_esvee`, `rust_amber`, `rust_cobalt`, `rust_bamtools`, `rust_teal`, `rust_lilac`, `rust_cider` | one tool as a Rust port, the others in Java; combine as needed |
 
 | Parameter | Default | Meaning |
 |---|---|---|
@@ -60,7 +60,8 @@ unchanged (so is the `-resume` cache); they can be given anywhere, including a `
 tuned its filters on data with the usual qualities, so calls made with moved bands need checking.
 
 The profiles also lower the memory requested for these steps (SAGE, REDUX, AMBER and COBALT 8 GB,
-BamTools, TEAL and LILAC 4 GB, ESVEE 24 GB, each doubled on retry), since the ports need a few GB where the Java tools are given 24 to 72 GB. More
+BamTools, TEAL and LILAC 4 GB, CIDER 8 GB (for the pages of the BWA index image it maps), ESVEE 24 GB,
+each doubled on retry), since the ports need a few GB where the Java tools are given 24 to 72 GB. More
 samples then fit on one machine at once.
 
 ## Resources
@@ -120,9 +121,9 @@ image instead.
 
 ## The container
 
-The image holds `sage-rs`, `redux-rs`, `esvee-rs`, `amber-rs`, `cobalt-rs`, `bam-tools-rs`, `teal-rs`
-and `lilac-rs`, wrapper commands `sage`, `redux`, `esvee`, `amber`, `cobalt`, `bamtools`, `teal` and
-`lilac` that accept the Java tools' command lines (JVM options are dropped, Java main classes become
+The image holds `sage-rs`, `redux-rs`, `esvee-rs`, `amber-rs`, `cobalt-rs`, `bam-tools-rs`, `teal-rs`,
+`lilac-rs` and `cider-rs`, wrapper commands `sage`, `redux`, `esvee`, `amber`, `cobalt`, `bamtools`,
+`teal`, `lilac` and `cider` that accept the Java tools' command lines (JVM options are dropped, Java main classes become
 subcommands), samtools and sambamba (passed to REDUX and ESVEE as `-bamtool`), and `ps`, which
 Nextflow needs to record each task's memory and CPU use. It is built from the hmftools fork, for
 linux/amd64 (the machines of Google Batch and AWS Batch). On Google Cloud, Cloud Build builds it and
@@ -161,7 +162,10 @@ Java mode should agree.
 TEAL is 1.4 in both the module's image and the port. On an earlier pipeline run's telbams, the port in
 Java mode wrote the same tellength and breakend files as that run's Java TEAL. LILAC's image is 2.0, and
 the port follows 2.1. On the HG008 pair, LILAC 2.1 gives the same rows in all three files as the
-pipeline's LILAC 2.0, in another gene group order.
+pipeline's LILAC 2.0, in another gene group order. CIDER is 1.2 in both, but the two builds differ:
+the port follows the hmftools 1.2 sources, which write two more columns in `cider.vdj.tsv.gz`
+(`vImgtRefUnaligned`, `jImgtRefUnaligned`) than the module's image; the other columns and files were the
+same on HG008.
 
 ## Known gaps
 
@@ -175,7 +179,7 @@ pipeline's LILAC 2.0, in another gene group order.
   reads it.
 - Run end to end on Google Batch on a 2M-read-pair test and on two whole-genome pairs (below); not
   yet on AWS Batch. AMBER, COBALT and BamTools, ported on 2026-11-26, have run inside the pipeline on
-  the HG008 pair only (section "AMBER, COBALT and BamTools in the pipeline"). TEAL and LILAC, ported on
+  the HG008 pair only (section "AMBER, COBALT and BamTools in the pipeline"). TEAL, LILAC and CIDER, ported on
   2026-11-27, were checked against Java outside the pipeline only; TEAL's whole-genome prep has not yet
   been compared with Java's.
 
