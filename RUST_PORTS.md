@@ -633,6 +633,21 @@ Two more reruns (2026-11-27) completed the native drawing:
 With these, an HG008 run under `rust_ports` draws every PURPLE, LINX and ORANGE figure without R, Perl, Circos or
 Java. CUPPA's and qsee's R plots are not drawn yet.
 
+### ISOFOX, BamTools, CIDER and CUPPA on RNA in the pipeline
+
+A tumor RNA (74 M read pairs, STAR route) ran with `rust_ports` from the cached alignment (2026-11-27, hmftools
+09a423dd91, Java mode; $0.09), against Java runs from the same cache:
+- **ISOFOX** (isofox-rs, 2.0.1 mode): gene and transcript expression, the summary and the filtered splice junctions
+  identical to Java ISOFOX 2.0.1's. The other files differ from Java as much as Java's own two runs (16 and 15
+  threads) differ from each other: 17% of the unfiltered splice-junction rows, 10% of the passing fusions (tied
+  transcript choices; every breakend the same), a quarter of the retained-intron rows, fusion ids. 2.5 minutes and
+  16.5 GB against 39 minutes and 43 GB.
+- **BamTools:** 6 of 7 files identical; partition_stats differs in row order and timings.
+- **CIDER:** the same V(D)J calls; `layoutId` numbering and one read in IGH differ, the build difference between
+  Hartwig's CIDER 1.2 image and the 1.2 sources the port follows (also seen on HG008); the port writes the two extra
+  IMGT columns of those sources.
+- **CUPPA** (RNA only): the features identical but for row order, the predictions within 1e-14 relative.
+
 ### Alignment: bwa-mem3 mode and the file cache
 
 One normal lane of the pair (25 GB of FASTQ, about 160 million read pairs) was aligned three more times on
