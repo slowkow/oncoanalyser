@@ -96,7 +96,9 @@ ISOFOX 2.0.1 (biocontainers), because ISOFOX 2.1 expects bwa-mem3 + TARS BAMs: o
 from every count and finds no multi-mapped reads (it reads bwa's XA tags); Hartwig's ISOFOX README asks for 2.0 or
 earlier with STAR. 2.0.1's files differ from 2.1's in the multi-mapped column name (`LowMapQualFrags`), an extra
 summary column and `retained_intron.csv`; ORANGE, CUPPA and NEO read none of these. A first RNA run (2026-11-27)
-used 2.1-beta.5 on STAR, before this was found.
+used 2.1-beta.5 on STAR, before this was found; rerun with 2.0.1 from the cache (only ISOFOX and CUPPA ran, $0.59), the
+same tumor RNA gave about three times the fragments (2.1 had left out every duplicate, two thirds of this library)
+and 60% more passing fusions. ISOFOX 2.0.1 took 40 minutes and 43 GB at 16 threads.
 
 The ISOFOX port (`isofox-rs`, profile `rust_isofox`, not in `rust_ports`) follows ISOFOX 2.1, so it is for the
 `bwa-mem3` route; ISOFOX 2.0's behaviour on STAR BAMs is not ported yet.
