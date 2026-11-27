@@ -1,6 +1,6 @@
 > **This fork** (branch `rust-ports`) aligns with bwa-mem3, skips fastp, and can run Rust ports of
 > SAGE, REDUX, ESVEE, AMBER, COBALT, the BamTools metrics, TEAL, LILAC, CIDER, PAVE, LINX, SIGS,
-> Virus Interpreter, PEACH, CHORD and NEO in place of the Java tools (PURPLE too, with its own profile) (`-profile rust_ports`). See
+> Virus Interpreter, PEACH, CHORD, NEO and CUPPA in place of the Java tools (PURPLE too, with its own profile) (`-profile rust_ports`). See
 > [RUST_PORTS.md](RUST_PORTS.md).
 
 <h1>
