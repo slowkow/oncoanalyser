@@ -32,7 +32,7 @@ nextflow run slowkow/oncoanalyser -r rust-ports \
 
 | Profile | Effect |
 |---|---|
-| `rust_ports` | SAGE, REDUX, ESVEE, AMBER, COBALT, BamTools, TEAL, LILAC, CIDER, PAVE, PURPLE (with its plots), LINX (LINX_SOMATIC, LINX_GERMLINE), SIGS, Virus Interpreter, PEACH, CHORD, NEO (NEO_FINDER, NEO_SCORER), CUPPA, qsee and ORANGE (JSON, no PDF) all run as Rust ports |
+| `rust_ports` | SAGE, REDUX, ESVEE, AMBER, COBALT, BamTools, TEAL, LILAC, CIDER, PAVE, PURPLE (with its plots), LINX (LINX_SOMATIC, LINX_GERMLINE, LINX_VISUALISER), SIGS, Virus Interpreter, PEACH, CHORD, NEO (NEO_FINDER, NEO_SCORER), CUPPA, qsee and ORANGE all run as Rust ports |
 | `rust_sage`, `rust_redux`, `rust_esvee`, `rust_amber`, `rust_cobalt`, `rust_bamtools`, `rust_teal`, `rust_lilac`, `rust_cider`, `rust_pave`, `rust_purple`, `rust_linx`, `rust_sigs`, `rust_virusinterpreter`, `rust_peach`, `rust_chord`, `rust_neo`, `rust_cuppa`, `rust_qsee`, `rust_orange` | one tool as a Rust port, the others in Java; combine as needed |
 
 | Parameter | Default | Meaning |
