@@ -31,7 +31,7 @@ nextflow run slowkow/oncoanalyser -r rust-ports \
 |---|---|
 | `rust_ports` | SAGE, REDUX, ESVEE, AMBER, COBALT, BamTools, TEAL, LILAC, CIDER, PAVE and LINX (LINX_SOMATIC, LINX_GERMLINE) all run as Rust ports |
 | `rust_sage`, `rust_redux`, `rust_esvee`, `rust_amber`, `rust_cobalt`, `rust_bamtools`, `rust_teal`, `rust_lilac`, `rust_cider`, `rust_pave`, `rust_linx` | one tool as a Rust port, the others in Java; combine as needed |
-| `rust_purple` | PURPLE as a Rust port. Not part of `rust_ports`: purple-rs writes every data file but no plots (Java draws them with R and Circos), and ORANGE fails without them |
+| `rust_purple` | PURPLE as a Rust port. Not part of `rust_ports`: purple-rs writes every data file but no plots (Java draws them with R and Circos), and oncoanalyser skips ORANGE when PURPLE's circos plot is missing |
 
 | Parameter | Default | Meaning |
 |---|---|---|
@@ -184,9 +184,9 @@ same on HG008.
   the HG008 pair only (section "AMBER, COBALT and BamTools in the pipeline"). TEAL, LILAC and CIDER,
   ported on 2026-11-27, have run inside the pipeline on HG008 too (section "TEAL, LILAC and CIDER in the
   pipeline").
-- LINX (LINX_SOMATIC and LINX_GERMLINE) has run inside the pipeline on HG008 (section "LINX in the
-  pipeline"). PAVE and PURPLE, ported on 2026-11-27, have not yet. PURPLE runs as a port only with
-  `rust_purple`: it draws no plots, and ORANGE fails without them.
+- LINX, PAVE and PURPLE have run inside the pipeline on HG008 (sections "LINX in the pipeline" and
+  "PAVE and PURPLE in the pipeline"). PURPLE runs as a port only with `rust_purple`: it draws no plots,
+  and without them oncoanalyser skips ORANGE.
   LINX_VISUALISER keeps the Java image and reads the port's visualiser files.
 - TEAL's prep took 7.5 minutes on Google Batch against Java's 13.8 (HG008), after reading each BAM
   ahead with several handles; before that it was slower than Java (15.5 minutes).
@@ -475,6 +475,29 @@ and PURPLE as Java.
 Reruns 3 to 7 had also each copied the REDUX BAMs (151 GB) into their output folders, though they took
 REDUX from the cache: the pipeline publishes through its `output` block, so a process `publishDir`
 setting does not stop it. Since then, `--publish_alignments false` leaves them out.
+
+### PAVE and PURPLE in the pipeline
+
+An eighth rerun (2026-11-27, hmftools af4949c5f9, `-profile rust_ports,rust_purple`) ran PAVE and PURPLE as
+ports in Java mode, with LINX, for $0.16. Everything before them came from the cache.
+- **PAVE:** all 17,254 somatic and 846 germline records are identical to the Java run's. Only the
+  `##PaveVersion` line differs (2.0 against 2.0-beta.2).
+  - Somatic: 6 s and 211 MB, against Java's 31 s and 6.3 GB.
+  - Germline: 4.8 s and 189 MB, against 37 s and 9.8 GB.
+- **PURPLE:**
+  - Every text file is identical.
+  - The VCF records are identical, apart from the kataegis ids of 101 somatic records (24 clusters
+    renamed one to one; Java numbers them differently from run to run). The headers differ in the
+    version lines.
+  - 11.9 s and 1.0 GB, against Java's 44 s and 5.3 GB with its plots.
+- **Plots and ORANGE:** no plots or Circos files are written. oncoanalyser runs ORANGE only when PURPLE's
+  circos plot exists, so it skipped ORANGE, and the run still completed.
+- **Later steps:** LINX, CHORD, SIGS, LILAC, NEO, CUPPA, PEACH and Virus Interpreter gave the same
+  outputs as with Java PURPLE.
+
+This rerun was the first with `--publish_alignments false`. Its first pass published nothing: a `>>` inside
+an `if` in the `output` block is not a publish statement. The filter now sits on the published channel
+(fork d248e3d4), and a second pass published the results without the BAMs.
 
 ### Alignment: bwa-mem3 mode and the file cache
 
