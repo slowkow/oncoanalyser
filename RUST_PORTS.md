@@ -648,6 +648,26 @@ A tumor RNA (74 M read pairs, STAR route) ran with `rust_ports` from the cached 
   IMGT columns of those sources.
 - **CUPPA** (RNA only): the features identical but for row order, the predictions within 1e-14 relative.
 
+### A combined DNA and RNA run
+
+The private whole-genome pair with a tumor RNA of the same person (somalier: relatedness 0.97-0.99, IBS0 0 between
+the RNA and both DNA samples), started from REDUX folders (DNA) and the STAR route's MarkDuplicates folder (RNA), ran
+twice on 2026-11-28 (hmftools 462d895345, Java mode): every step as a port ($1.29), then the steps that use the RNA
+beside the DNA in Java from that cache ($0.09), so that each Java step had the port's inputs.
+- **The same files:** NEO (fusion annotation with ISOFOX's NEO_EPITOPES, and the scorer with RNA), ISOFOX, and every
+  DNA step.
+- **CUPPA (DNA and RNA):** features identical; predictions within 1.1e-13 relative (pycuppa's last digits).
+- **LILAC (with RNA):** the same rows, RNA columns included, in another gene group and QC status order (LI1, LI8: Java's
+  identity-hash order).
+- **ORANGE:** its JSON differs only where its inputs do (CUPPA's last digits, LILAC's allele order); the ISOFOX section
+  is identical.
+- **SAGE append on the RNA:** 25 of 4,384 records differ in the RNA sample's RC_QUAL, AFMQ and AFBQ, and Hartwig's
+  5.1-beta.3 image writes a `##sageAppendVersion` header line the port does not; under investigation.
+
+Two pipeline faults showed up on the way, both fixed: RNA given as a REDUX input was not counted as RNA
+(`Utils.hasTumorRna`), so NEO's fusion annotation was skipped and NEO_SCORER failed; and an RNA `redux_dir` had to hold
+REDUX TSVs, which the STAR route does not make.
+
 ### Alignment: bwa-mem3 mode and the file cache
 
 One normal lane of the pair (25 GB of FASTQ, about 160 million read pairs) was aligned three more times on
