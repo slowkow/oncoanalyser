@@ -860,7 +860,18 @@ class Utils {
     }
 
     public static hasTumorRna(meta) {
-        return hasTumorRnaBam(meta) || hasTumorRnaFastq(meta)
+        // a REDUX input (bam_redux, cram_redux, redux_dir) is RNA too, as hasTumorDna counts it for DNA: without it, NEO's
+        // fusion annotation and CUPPA's RNA features were skipped for such input while ISOFOX ran on it
+        return hasTumorRnaBam(meta) || hasTumorRnaReduxInput(meta) || hasTumorRnaFastq(meta)
+    }
+
+    public static getTumorRnaReduxInput(meta) {
+        def meta_sample = getTumorRnaSample(meta)
+        return hasReduxData(meta_sample) ?: null
+    }
+
+    public static hasTumorRnaReduxInput(meta) {
+        return getTumorRnaReduxInput(meta) != null
     }
 
     public static hasReduxData(meta_sample) {
