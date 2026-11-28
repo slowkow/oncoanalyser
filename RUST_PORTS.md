@@ -662,7 +662,10 @@ beside the DNA in Java from that cache ($0.09), so that each Java step had the p
 - **ORANGE:** its JSON differs only where its inputs do (CUPPA's last digits, LILAC's allele order); the ISOFOX section
   is identical.
 - **SAGE append on the RNA:** 25 of 4,384 records differ in the RNA sample's RC_QUAL, AFMQ and AFBQ, and Hartwig's
-  5.1-beta.3 image writes a `##sageAppendVersion` header line the port does not; under investigation.
+  image writes a `##sageAppendVersion` header line the port does not. A version difference: the image (5.1-beta.3, a
+  side branch) is older than the 5.1-beta.4 the port follows; it scales the base-quality penalty (kept upstream in
+  beta.5) and counts NM raw (a fault beta.5 fixed). The port equals the beta.4 jar on these records. On the way an RNA
+  crash of Java's was found and handled (sage-rs S54: spliced reads without NM tags).
 
 Two pipeline faults showed up on the way, both fixed: RNA given as a REDUX input was not counted as RNA
 (`Utils.hasTumorRna`), so NEO's fusion annotation was skipped and NEO_SCORER failed; and an RNA `redux_dir` had to hold
